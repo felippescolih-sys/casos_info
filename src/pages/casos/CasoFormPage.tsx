@@ -9,8 +9,10 @@ import {
   getCasoCompleto,
   listMembrosParaSelecao,
 } from '@/lib/queries/casos';
+import { listCongregacoes } from '@/lib/queries/congregacoes';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
+import { Combobox } from '@/components/ui/Combobox';
 import { Checkbox, Input, Select, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
@@ -184,8 +186,14 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
     enabled: mode === 'novo',
   });
 
-  const { register, handleSubmit, reset, formState } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, setValue, formState } = useForm<FormValues>({
     defaultValues: defaults(null, membro?.id),
+  });
+
+  const congregacoesQ = useQuery({
+    queryKey: ['congregacoes'],
+    queryFn: listCongregacoes,
+    staleTime: 60 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -274,7 +282,12 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             <Input {...register('uf')} maxLength={2} />
           </F>
           <F label="Congregação">
-            <Input {...register('congregacao')} />
+            <Combobox
+              value={watch('congregacao')}
+              onChange={(v) => setValue('congregacao', v, { shouldDirty: true })}
+              options={congregacoesQ.data ?? []}
+              placeholder="Buscar congregação…"
+            />
           </F>
         </Grid>
         <Checks

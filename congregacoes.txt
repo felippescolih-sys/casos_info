@@ -1,0 +1,263 @@
+Abranches - Curitiba PR
+Aeroporto - São José dos Pinhais PR
+Água Amarela - Antônio Olinto PR
+Água Verde - Curitiba PR
+Agudos do Sul - PR
+Alexandra - Paranaguá PR
+Alto da XV - Curitiba PR
+Alto Maracanã - Colombo PR
+Antonina - PR
+Arapoti - PR
+Areia Branca - Mandirituba PR
+Areião - Cândido de Abreu PR
+Athenas - Curitiba PR
+Bacacheri - Curitiba PR
+Bairro Novo - Curitiba PR
+Balneário Coroados - Guaratuba PR
+Barreirinha - Curitiba PR
+Batel - Curitiba PR
+Bertioga - Paranaguá PR
+Bituruna - PR
+Boa Vista - Curitiba PR
+Bocaiúva do Sul - PR
+Bom Retiro - Curitiba PR
+Bom Retiro - Matinhos PR
+Bonsucesso - Guarapuava PR
+Boqueirão - Curitiba PR
+Borato - Ponta Grossa PR
+Borda do Campo - São José dos Pinhais PR
+Cabral - Curitiba PR
+Cachoeira - Almirante Tamandaré PR
+Cachoeira - Araucária PR
+Caiuá - Curitiba PR
+Cajuru - Curitiba PR
+Califórnia - Araucária PR
+Campina - São José dos Pinhais PR
+Campina das Palmeiras - Araucária PR
+Campina Grande do Sul - PR
+Campo Alegre - Curitiba PR
+Campo Alto - Tijucas do Sul PR
+Campo Comprido - Curitiba PR
+Campo do Tenente - PR
+Campo Largo da Roseira - São José dos Pinhais PR
+Candói - PR
+Cantagalo - PR
+Capanema - PR
+Capão Raso - Curitiba PR
+Catanduva - Carambeí PR
+Central - Almirante Tamandaré PR
+Central - Araucária PR
+Central - Balsa Nova PR
+Central - Campo Largo PR
+Central - Campo Magro PR
+Central - Cândido de Abreu PR
+Central - Carambeí PR
+Central - Castro PR
+Central - Curitiba PR
+Central - Fazenda Rio Grande PR
+Central - Guaratuba PR
+Central - Mandirituba PR
+Central - Matinhos PR
+Central - Paranaguá PR
+Central - Pinhais PR
+Central - Piraquara PR
+Central - Porto União SC
+Central - Quatro Barras PR
+Central - São José dos Pinhais PR
+Central - Tijucas do Sul PR
+Central - União da Vitória PR
+Cerro Azul - PR
+Chinesa - Curitiba PR
+Cidade Industrial - Curitiba PR
+Cidade Jardim - São José dos Pinhais PR
+Condomínio Vitória Régia - Curitiba PR
+Contenda - PR
+Contorno Sul - Castro PR
+Contorno Sul - Curitiba PR
+Crioula do Haiti (Norte) - Curitiba PR
+Crioula do Haiti - Pinhais PR
+Cruz Machado - PR
+Del Rey - São José dos Pinhais PR
+Diadema - Curitiba PR
+Espanhola (Atuba) - Pinhais PR
+Espanhola (Barigui) - Curitiba PR
+Espanhola (Central) - Curitiba PR
+Espanhola (Central) - São José dos Pinhais PR
+Espanhola (Fazendinha) - Curitiba PR
+Espanhola (Jardim Amélia) - Pinhais PR
+Espanhola (Norte) - Araucária PR
+Espanhola (Norte) - São José dos Pinhais PR
+Espanhola (Osternack) - Curitiba PR
+Espanhola (Ourizona) - Curitiba PR
+Espanhola (Pinheirinho) - Curitiba PR
+Espanhola (Portão) - Curitiba PR
+Espanhola (Sítio Cercado) - Curitiba PR
+Espanhola (Sul) - Araucária PR
+Espanhola (Sul) - Curitiba PR
+Espanhola (Tatuquara) - Curitiba PR
+Espanhola - Campo Magro PR
+Espanhola - Colombo PR
+Espanhola - Fazenda Rio Grande PR
+Espanhola - Quatro Barras PR
+Estados - Fazenda Rio Grande PR
+Eucaliptos - Fazenda Rio Grande PR
+Fazendinha - Curitiba PR
+Fernando de Noronha - Curitiba PR
+Ferroviários - Curitiba PR
+Flamboyant - Curitiba PR
+General Carneiro - PR
+Graciosa - Colombo PR
+Gralha Azul - Fazenda Rio Grande PR
+Guamiranga - PR
+Guaraituba - Colombo PR
+Guarani - Campo Largo PR
+Guaraqueçaba - PR
+Hauer - Curitiba PR
+Ilha dos Valadares - Paranaguá PR
+Imbaú - PR
+Imbituva - PR
+Inácio Martins - PR
+Ipanema - Pontal do Paraná PR
+Ipê - São José dos Pinhais PR
+Ipiranga - PR
+Iraí - Pinhais PR
+Itamarati - Curitiba PR
+Itaperuçu - PR
+Itaqui - Campo Largo PR
+Ivaí - PR
+Jaguariaíva - PR
+Jardim Aliança - Curitiba PR
+Jardim Atuba - Pinhais PR
+Jardim Bela Vista - Araucária PR
+Jardim Bela Vista - Matinhos PR
+Jardim Botânico - Curitiba PR
+Jardim Cecília - Campo Magro PR
+Jardim Cruzeiro - Colombo PR
+Jardim Cruzeiro - São José dos Pinhais PR
+Jardim Dom Bosco - Curitiba PR
+Jardim Esmeralda - Campo Largo PR
+Jardim Graziela - Almirante Tamandaré PR
+Jardim Holandês - Piraquara PR
+Jardim Iguaçu - Fazenda Rio Grande PR
+Jardim Industrial - Araucária PR
+Jardim Maringá - Curitiba PR
+Jardim Maringá - Pinhais PR
+Jardim Panorama - União da Vitória PR
+Jardim Paraíso - São José dos Pinhais PR
+Jardim Pinheiros - Curitiba PR
+Jardim Primavera - Piraquara PR
+Jardim Saturno - Curitiba PR
+Jardim Suzuki - São José dos Pinhais PR
+Jardim Trianon - Guarapuava PR
+Jardim Virgínia - Curitiba PR
+Juvevê - Curitiba PR
+La Fiori - Ponta Grossa PR
+Lamenha Grande - Almirante Tamandaré PR
+Lapa - PR
+Laranjeiras do Sul - PR
+Leste - Irati PR
+Leste - Ponta Grossa PR
+Leste - São José dos Pinhais PR
+Lindoia - Curitiba PR
+LS (Novo Mundo) - Curitiba PR
+LS (Santa Felicidade) - Curitiba, PR - Curitiba PR
+LS (Sítio Cercado) - Curitiba PR
+LS (Tatuquara) - Curitiba PR
+LS - Colombo PR
+LS - Fazenda Rio Grande PR
+LS - Pinhais PR
+LS - Ponta Grossa PR
+Madureira - Ponta Grossa PR
+Maria Antonieta - Pinhais PR
+Marumbi - Curitiba PR
+Mercúrio - Curitiba PR
+Monte Castelo - Colombo PR
+Monteiro Lobato - Curitiba PR
+Montreal - Araucária PR
+Morretes - PR
+Morro Alto - Guarapuava PR
+Neves - Ponta Grossa PR
+Norte - Ponta Grossa PR
+Nova Europa - Curitiba PR
+Nova Orleans - Curitiba PR
+Novo Mundo - Curitiba PR
+Oeste - Irati PR
+Oeste - Ponta Grossa PR
+Oficinas - Curitiba PR
+Ortigueira - PR
+Osternack - Curitiba PR
+Ouro Fino - Paranaguá PR
+Ouro Fino - São José dos Pinhais PR
+Ouro Verde - São José dos Pinhais PR
+Palmeira - PR
+Palmital - PR
+Palomar - Araucária PR
+Paraíso - Curitiba PR
+Parque Barigui - Curitiba PR
+Parque Cambuí - Campo Largo PR
+Parque da Fonte - São José dos Pinhais PR
+Parque dos Tropeiros - Curitiba PR
+Parque Iguaçu - Curitiba PR
+Parque Industrial - Curitiba PR
+Passaúna - Campo Largo PR
+Piçarras - Guaratuba PR
+Piên - PR
+Pilarzinho - Curitiba PR
+Pineville - Pinhais PR
+Pinhão - PR
+Piraí do Sul - PR
+Piratini - Curitiba PR
+Pitanga - PR
+Planalto - Guarapuava PR
+Planta Deodoro - Piraquara PR
+Pontal do Sul - Pontal do Paraná PR
+Portão - Curitiba PR
+Porto Amazonas - PR
+Pousada - Quatro Barras PR
+Praia de Leste - Pontal do Paraná PR
+Primavera - Guarapuava PR
+Primavera - São José dos Pinhais PR
+Prudentópolis - PR
+Quitandinha - PR
+Rebouças - PR
+Reserva - PR
+Rio Azul - PR
+Rio Bonito - Curitiba PR
+Rio Branco do Sul - PR
+Rio Negro - PR
+Rio Verde - Colombo PR
+Roça Grande - Colombo PR
+Ronda - Ponta Grossa PR
+Santa Cruz do Timbó - Porto União SC
+Santa Felicidade - Curitiba PR
+São Luiz do Purunã - Balsa Nova PR
+São Mateus do Sul - PR
+Sengés - PR
+Sítio Cercado - Curitiba PR
+Sol Nascente - Araucária PR
+Sul - Ponta Grossa PR
+Tanguá - Almirante Tamandaré PR
+Tarumã - Curitiba PR
+Teixeira Soares - PR
+Telêmaco Borba - PR
+Tibagi - PR
+Torres - Curitiba PR
+Tunas do Paraná - PR
+Turvo - PR
+Uberaba - Curitiba PR
+Umbará - Curitiba PR
+Ventania - PR
+Vila Acordes - Curitiba PR
+Vila Amélia - Pinhais PR
+Vila Carli - Guarapuava PR
+Vila Dalva - Curitiba PR
+Vila Guarany - Paranaguá PR
+Vila Ipiranga - Curitiba PR
+Vila Isabel - Curitiba PR
+Vila Mariana - Piraquara PR
+Vila Nova - Araucária PR
+Vila Rio Negro - Curitiba PR
+Vila Sandra - Curitiba PR
+Vila São Marcos - São José dos Pinhais PR
+Vila Tecnológica - Curitiba PR
+Xaxim - Curitiba PR

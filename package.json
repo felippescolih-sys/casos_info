@@ -13,6 +13,7 @@
     "db:push": "supabase db push",
     "import:membros": "tsx scripts/import-bubble-members.ts",
     "import:casos": "tsx scripts/import-bubble-casos.ts",
+    "seed:congregacoes": "tsx scripts/seed-congregacoes.ts",
     "make:admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {

@@ -196,6 +196,12 @@ export type Database = {
         Update: CasoUpdate;
         Relationships: [];
       };
+      congregacoes: {
+        Row: { nome: string; ativa: boolean; created_at: string };
+        Insert: { nome: string; ativa?: boolean; created_at?: string };
+        Update: { nome?: string; ativa?: boolean };
+        Relationships: [];
+      };
     };
     Views: {
       casos_resumo: {
