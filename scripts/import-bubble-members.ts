@@ -35,16 +35,11 @@ interface BubbleUser {
 
 /**
  * Mapa `nivelacesso` (texto livre do Bubble) → função por área.
- * AJUSTE aqui depois que o --dry-run mostrar os valores reais.
- * Retorne null quando não houver função a atribuir.
+ * Decisão (07/09/2026): ignorar o nivelacesso. Todos os membros entram SEM função;
+ * as funções por área são atribuídas manualmente no app depois.
  */
-function mapFuncao(nivelacesso: string | undefined): { area: Area; nivel: FuncaoNivel } | null {
-  switch ((nivelacesso ?? '').trim()) {
-    case '1':
-      return { area: 'geral', nivel: 'admin' };
-    default:
-      return null;
-  }
+function mapFuncao(_nivelacesso: string | undefined): { area: Area; nivel: FuncaoNivel } | null {
+  return null;
 }
 
 function emailOf(u: BubbleUser): string | null {
