@@ -25,7 +25,8 @@ atribui/edita funções de outros.
 
 ## Pré-requisitos
 
-Node 20+. Não precisa de Docker — o Supabase roda **na nuvem** e as migrations sobem via `supabase db push`.
+Node 20+. Não precisa de Docker — o Supabase roda **na nuvem**. As migrations sobem sozinhas pela
+**integração GitHub do Supabase** ao dar push na branch de produção (`main`).
 
 ## Setup
 
@@ -44,17 +45,21 @@ cp .env.import.example .env.import      # tokens de Bubble + service_role (só p
 
 `.env.local` e `.env.import` estão no `.gitignore` — nunca commite.
 
-### 3. Aplicar o schema
+### 3. Schema
+
+As migrations em `supabase/migrations/` são aplicadas automaticamente pela integração GitHub do
+Supabase quando há push na `main`. Acompanhe em **Dashboard → Integrations → GitHub** (ou no check
+do commit no GitHub).
 
 ```bash
 npm install
 npx supabase login
-npx supabase link --project-ref SEU_PROJECT_REF
-npm run db:push          # aplica supabase/migrations/*
+npx supabase link --project-ref srqgkvajsbpagpdrxksq
 npm run gen:types        # regenera src/types/database.ts a partir do banco real
 ```
 
-Alternativa sem CLL: cole o conteúdo de `supabase/migrations/0001_init_membros.sql` no **SQL Editor** do dashboard.
+Fallback manual (se a integração falhar): `npm run db:push`, ou cole o SQL da migration mais recente
+no **SQL Editor** do dashboard.
 
 ### 4. Rodar
 
