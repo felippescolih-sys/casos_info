@@ -1,12 +1,25 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 
 export function PendingApprovalPage() {
-  const { membro, signOut, refreshMembro } = useAuth();
+  const { session, membro, loadingMembro, signOut, refreshMembro } = useAuth();
   const navigate = useNavigate();
+
+  // Revalida o perfil ao abrir a tela e a cada 20s (aprovação acontece do outro lado).
+  useEffect(() => {
+    void refreshMembro();
+    const t = setInterval(() => void refreshMembro(), 20_000);
+    return () => clearInterval(t);
+  }, [refreshMembro]);
+
+  if (session === null) return <Navigate to="/login" replace />;
+  if (membro?.status === 'ativo') return <Navigate to="/" replace />;
+  if (membro?.status === 'inativo') return <Navigate to="/conta-desativada" replace />;
+
   return (
     <AuthLayout title="Aguardando aprovação" subtitle={membro?.nome}>
       <div className="space-y-4">
@@ -15,7 +28,12 @@ export function PendingApprovalPage() {
           acesso assim que isso acontecer.
         </Alert>
         <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={() => void refreshMembro()}>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            loading={loadingMembro}
+            onClick={() => void refreshMembro()}
+          >
             Verificar de novo
           </Button>
           <Button
