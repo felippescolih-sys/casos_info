@@ -129,6 +129,9 @@ export type CasoRow = {
   em_transferencia: boolean | null;
   transferencia_data: string | null;
   transferencia_historico: string | null;
+  transferencia_pendente_para: string | null;
+  transferencia_pendente_por: string | null;
+  transferencia_pendente_em: string | null;
   transpac: boolean | null;
   transfundido: boolean | null;
 
@@ -145,7 +148,7 @@ export type CasoRow = {
   updated_at: string;
 };
 
-export type CasoInsert = Partial<CasoRow> & Pick<CasoRow, 'legacy_bubble_id' | 'bubble_raw'>;
+export type CasoInsert = Partial<CasoRow>;
 export type CasoUpdate = Partial<Omit<CasoRow, 'id' | 'created_at'>>;
 
 export type CasoResumoRow = Pick<
@@ -168,6 +171,8 @@ export type CasoResumoRow = Pick<
   | 'encerrado_em'
   | 'atualizado_em_bubble'
   | 'tags'
+  | 'em_transferencia'
+  | 'transferencia_pendente_para'
 >;
 
 export type Database = {
@@ -203,6 +208,12 @@ export type Database = {
       is_admin_geral: { Args: Record<string, never>; Returns: boolean };
       gerencia_membros: { Args: Record<string, never>; Returns: boolean };
       is_ativo: { Args: Record<string, never>; Returns: boolean };
+      pode_operar_caso: { Args: { _caso_id: string }; Returns: boolean };
+      transferir_caso: { Args: { _caso_id: string; _novo: string }; Returns: undefined };
+      aceitar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
+      cancelar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
+      encerrar_caso: { Args: { _caso_id: string }; Returns: undefined };
+      reabrir_caso: { Args: { _caso_id: string }; Returns: undefined };
     };
     Enums: {
       member_status: MemberStatus;

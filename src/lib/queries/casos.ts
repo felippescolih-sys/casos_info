@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { CasoResumoRow, CasoRow, CasoStatus } from '@/types/database';
+import type { CasoInsert, CasoResumoRow, CasoRow, CasoStatus, CasoUpdate } from '@/types/database';
 
 export const PAGE_SIZE = 30;
 
@@ -7,6 +7,8 @@ export interface CasosFilter {
   status?: CasoStatus | 'todos';
   /** 'meus' = responsável ou ajudante sou eu · 'todos' · ou um id de membro específico */
   responsavel?: 'meus' | 'todos' | string;
+  /** só casos com transferência pendente para o usuário atual */
+  pendentesParaMim?: boolean;
   search?: string;
 }
 
@@ -35,6 +37,10 @@ export async function listCasos(
     q = q.or(
       `responsavel_id.eq.${filter.responsavel},ajudante_id.eq.${filter.responsavel}`,
     );
+  }
+
+  if (filter.pendentesParaMim) {
+    q = q.eq('transferencia_pendente_para', currentUserId);
   }
 
   const term = filter.search?.trim();
@@ -76,4 +82,55 @@ export async function getCasoResumo(id: string): Promise<CasoResumoRow | null> {
     .maybeSingle();
   if (error) throw error;
   return (data as CasoResumoRow) ?? null;
+}
+
+// ── operação (M3) ────────────────────────────────────────────
+
+export async function criarCaso(input: CasoInsert): Promise<CasoRow> {
+  const { data, error } = await supabase.from('casos').insert(input).select('*').single();
+  if (error) throw error;
+  return data;
+}
+
+export async function atualizarCaso(id: string, patch: CasoUpdate): Promise<CasoRow> {
+  const { data, error } = await supabase
+    .from('casos')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function rpc(fn: 'aceitar_transferencia' | 'cancelar_transferencia' | 'encerrar_caso' | 'reabrir_caso', casoId: string) {
+  const { error } = await supabase.rpc(fn, { _caso_id: casoId });
+  if (error) throw error;
+}
+
+export const transferirCaso = async (casoId: string, novoMembroId: string) => {
+  const { error } = await supabase.rpc('transferir_caso', {
+    _caso_id: casoId,
+    _novo: novoMembroId,
+  });
+  if (error) throw error;
+};
+export const aceitarTransferencia = (casoId: string) => rpc('aceitar_transferencia', casoId);
+export const recusarTransferencia = (casoId: string) => rpc('cancelar_transferencia', casoId);
+export const encerrarCaso = (casoId: string) => rpc('encerrar_caso', casoId);
+export const reabrirCaso = (casoId: string) => rpc('reabrir_caso', casoId);
+
+export interface MembroOpcao {
+  id: string;
+  nome: string;
+}
+
+export async function listMembrosParaSelecao(): Promise<MembroOpcao[]> {
+  const { data, error } = await supabase
+    .from('membros')
+    .select('id, nome')
+    .eq('status', 'ativo')
+    .order('nome');
+  if (error) throw error;
+  return data ?? [];
 }

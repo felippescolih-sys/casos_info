@@ -33,14 +33,32 @@ export function CasosListPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Casos</h1>
-        {data && (
-          <span className="text-sm text-gray-500">
-            {data.total} {data.total === 1 ? 'caso' : 'casos'}
-          </span>
-        )}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold text-gray-900">Casos</h1>
+          {data && (
+            <span className="text-sm text-gray-500">
+              {data.total} {data.total === 1 ? 'caso' : 'casos'}
+            </span>
+          )}
+        </div>
+        <Link
+          to="/casos/novo"
+          className="inline-flex h-9 items-center rounded-md bg-brand-700 px-4 text-sm font-medium text-white hover:bg-brand-800"
+        >
+          Novo caso
+        </Link>
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
+          checked={!!filter.pendentesParaMim}
+          onChange={(e) => patch({ pendentesParaMim: e.target.checked })}
+        />
+        Só transferências pendentes para mim
+      </label>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_9rem_10rem]">
         <Input

@@ -1,4 +1,9 @@
-import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes } from 'react';
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react';
 import { cn } from '@/lib/cn';
 
 const base =
@@ -17,6 +22,29 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
       <select ref={ref} className={cn(base, 'pr-8', className)} {...props}>
         {children}
       </select>
+    );
+  },
+);
+
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, rows = 3, ...props }, ref) {
+  return <textarea ref={ref} rows={rows} className={cn(base, 'resize-y', className)} {...props} />;
+});
+
+export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  function Checkbox({ className, ...props }, ref) {
+    return (
+      <input
+        ref={ref}
+        type="checkbox"
+        className={cn(
+          'size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600',
+          className,
+        )}
+        {...props}
+      />
     );
   },
 );

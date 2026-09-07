@@ -18,6 +18,7 @@ import { MemberFormPage } from '@/pages/members/MemberFormPage';
 import { PendingApprovalsPage } from '@/pages/members/PendingApprovalsPage';
 import { CasosListPage } from '@/pages/casos/CasosListPage';
 import { CasoDetailPage } from '@/pages/casos/CasoDetailPage';
+import { CasoFormPage } from '@/pages/casos/CasoFormPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 
@@ -45,7 +46,9 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/conta" element={<MyAccountPage />} />
         <Route path="/casos" element={<CasosListPage />} />
+        <Route path="/casos/novo" element={<CasoFormPage mode="novo" />} />
         <Route path="/casos/:id" element={<CasoDetailPage />} />
+        <Route path="/casos/:id/editar" element={<CasoFormPage mode="editar" />} />
         <Route
           path="/membros"
           element={
