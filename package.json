@@ -12,6 +12,7 @@
     "gen:types": "supabase gen types typescript --linked > src/types/database.ts",
     "db:push": "supabase db push",
     "import:membros": "tsx scripts/import-bubble-members.ts",
+    "import:casos": "tsx scripts/import-bubble-casos.ts",
     "make:admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {

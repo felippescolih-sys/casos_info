@@ -61,6 +61,115 @@ export type MembroFuncaoInsert = Omit<MembroFuncaoRow, 'criado_por' | 'created_a
   Partial<Pick<MembroFuncaoRow, 'criado_por' | 'created_at'>>;
 export type MembroFuncaoUpdate = Partial<MembroFuncaoRow>;
 
+// ── Casos ────────────────────────────────────────────────────
+export type CasoStatus = 'aberto' | 'encerrado';
+
+export type ExameEntry = {
+  data?: string;
+  hb?: string;
+  ht?: string;
+  plq?: string;
+  outro?: string;
+};
+
+export type CasoRow = {
+  id: string;
+  legacy_bubble_id: string;
+  id_caso: string | null;
+  numero: number | null;
+  status: CasoStatus;
+
+  paciente_nome: string | null;
+  idade: string | null;
+  sexo: string | null;
+  uf: string | null;
+  cidade: string | null;
+  congregacao: string | null;
+  batizado: boolean | null;
+  mae_batizada: boolean | null;
+  pai_batizado: boolean | null;
+  nome_mae: string | null;
+  nome_pai: string | null;
+
+  hospital_nome: string | null;
+  num_quarto: string | null;
+  tele_hospital: string | null;
+  plano_nome: string | null;
+  tipo_atendimento: string | null;
+
+  responsavel_id: string | null;
+  responsavel_nome: string | null;
+  ajudante_id: string | null;
+  ajudante_nome: string | null;
+  gvp_id: string | null;
+  criado_por_id: string | null;
+
+  nome_telefonou: string | null;
+  parentesco_telefonou: string | null;
+  paciente_solicitou_ajuda: boolean | null;
+  acompanhante_nome: string | null;
+  telefone_paciente: string | null;
+  telefone_acompanhante: string | null;
+  anciaos_contatados: string | null;
+  anciaos_cont_tel: string | null;
+
+  medico_responsavel: string | null;
+  especialidade: string | null;
+  morbidade: string | null;
+  info_medica: string | null;
+  plano_tratamento: string | null;
+  estrategia: string | null;
+  artigos_medicos: string | null;
+  resumo: string | null;
+  outras_infos: string | null;
+
+  exames: ExameEntry[];
+  anexos_urls: string[];
+
+  em_transferencia: boolean | null;
+  transferencia_data: string | null;
+  transferencia_historico: string | null;
+  transpac: boolean | null;
+  transfundido: boolean | null;
+
+  gvp: boolean | null;
+  tags: string[];
+
+  aberto_em: string | null;
+  encerrado_em: string | null;
+  atualizado_em_bubble: string | null;
+
+  bubble_raw: Record<string, unknown>;
+  imported_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CasoInsert = Partial<CasoRow> & Pick<CasoRow, 'legacy_bubble_id' | 'bubble_raw'>;
+export type CasoUpdate = Partial<Omit<CasoRow, 'id' | 'created_at'>>;
+
+export type CasoResumoRow = Pick<
+  CasoRow,
+  | 'id'
+  | 'legacy_bubble_id'
+  | 'id_caso'
+  | 'numero'
+  | 'status'
+  | 'paciente_nome'
+  | 'responsavel_id'
+  | 'responsavel_nome'
+  | 'ajudante_id'
+  | 'ajudante_nome'
+  | 'hospital_nome'
+  | 'congregacao'
+  | 'cidade'
+  | 'uf'
+  | 'aberto_em'
+  | 'encerrado_em'
+  | 'atualizado_em_bubble'
+  | 'tags'
+>;
+
 export type Database = {
   public: {
     Tables: {
@@ -76,8 +185,19 @@ export type Database = {
         Update: MembroFuncaoUpdate;
         Relationships: [];
       };
+      casos: {
+        Row: CasoRow;
+        Insert: CasoInsert;
+        Update: CasoUpdate;
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      casos_resumo: {
+        Row: CasoResumoRow;
+        Relationships: [];
+      };
+    };
     Functions: {
       tem_funcao: { Args: { _area: Area; _nivel?: FuncaoNivel }; Returns: boolean };
       is_admin_geral: { Args: Record<string, never>; Returns: boolean };
@@ -88,6 +208,7 @@ export type Database = {
       member_status: MemberStatus;
       area: Area;
       funcao_nivel: FuncaoNivel;
+      caso_status: CasoStatus;
     };
     CompositeTypes: Record<string, never>;
   };

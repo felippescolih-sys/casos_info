@@ -16,6 +16,8 @@ import { MyAccountPage } from '@/pages/account/MyAccountPage';
 import { MembersListPage } from '@/pages/members/MembersListPage';
 import { MemberFormPage } from '@/pages/members/MemberFormPage';
 import { PendingApprovalsPage } from '@/pages/members/PendingApprovalsPage';
+import { CasosListPage } from '@/pages/casos/CasosListPage';
+import { CasoDetailPage } from '@/pages/casos/CasoDetailPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 
@@ -42,6 +44,8 @@ export default function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/conta" element={<MyAccountPage />} />
+        <Route path="/casos" element={<CasosListPage />} />
+        <Route path="/casos/:id" element={<CasoDetailPage />} />
         <Route
           path="/membros"
           element={

@@ -14,9 +14,12 @@ export function DashboardPage() {
       <Card>
         <CardBody>
           <p className="text-sm text-gray-600">
-            A migração está sendo feita por partes. Esta primeira entrega cobre{' '}
-            <strong>login, cadastro e gestão de membros</strong>. Os casos entram nos próximos
-            milestones.
+            A migração está sendo feita por partes. Já disponível:{' '}
+            <strong>login, gestão de membros</strong> e a{' '}
+            <a href="/casos" className="font-medium text-brand-700 hover:underline">
+              consulta de casos
+            </a>{' '}
+            (importados do Bubble, só leitura por enquanto).
           </p>
         </CardBody>
       </Card>
