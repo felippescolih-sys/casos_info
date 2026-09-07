@@ -1,0 +1,16 @@
+# Config do Supabase CLI. Sem Docker nesta máquina: usamos só `link` + `db push`
+# contra o projeto na nuvem (não `supabase start`).
+# Preencha project_id com o ref do seu projeto (Dashboard → Settings → General).
+
+project_id = "srqgkvajsbpagpdrxksq"
+
+[db]
+# versão do Postgres do projeto na nuvem (Dashboard → Settings → Infrastructure)
+major_version = 15
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/redefinir-senha",
+  "https://SEU_APP.pages.dev/redefinir-senha",
+]

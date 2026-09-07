@@ -1,0 +1,8 @@
+-- Seed roda com `supabase db reset` (ambiente local com Docker).
+-- Como aqui NÃO há Docker, o fluxo de dados de teste é:
+--   1. criar usuários pela tela /signup do app
+--   2. promover o primeiro admin com:  npm run make:admin -- <email>
+--   3. aprovar os demais em /membros/aprovacoes
+--
+-- Deixe este arquivo vazio de dados — não há como inserir em auth.users por seed
+-- sem hashes de senha válidos.
