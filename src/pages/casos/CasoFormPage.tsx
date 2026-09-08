@@ -1,7 +1,7 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useForm, type UseFormRegister } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '@/auth/AuthProvider';
 import {
   atualizarCaso,
@@ -10,111 +10,75 @@ import {
   listMembrosParaSelecao,
 } from '@/lib/queries/casos';
 import { listCongregacoes } from '@/lib/queries/congregacoes';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { Field } from '@/components/ui/Field';
 import { Combobox } from '@/components/ui/Combobox';
-import { Checkbox, Input, Select, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
+import { cn } from '@/lib/cn';
+import {
+  Band,
+  BlockCell,
+  Cell,
+  CheckRow,
+  PageMark,
+  Row,
+  Sheet,
+  SheetTitle,
+  ValoresReferencia,
+} from './hlc7-ui';
 import type { CasoRow, ExameEntry } from '@/types/database';
 
-type FormValues = {
-  paciente_nome: string;
-  idade: string;
-  sexo: string;
-  uf: string;
-  cidade: string;
-  congregacao: string;
-  batizado: boolean;
-  nome_mae: string;
-  mae_batizada: boolean;
-  nome_pai: string;
-  pai_batizado: boolean;
-
-  hospital_nome: string;
-  num_quarto: string;
-  tele_hospital: string;
-  plano_nome: string;
-  tipo_atendimento: string;
-
-  nome_telefonou: string;
-  parentesco_telefonou: string;
-  paciente_solicitou_ajuda: boolean;
-  acompanhante_nome: string;
-  telefone_paciente: string;
-  telefone_acompanhante: string;
-  anciaos_contatados: string;
-  anciaos_cont_tel: string;
-
-  medico_responsavel: string;
-  especialidade: string;
-  morbidade: string;
-  info_medica: string;
-  plano_tratamento: string;
-  estrategia: string;
-  artigos_medicos: string;
-  resumo: string;
-  outras_infos: string;
-
-  transpac: boolean;
-  transfundido: boolean;
-  gvp: boolean;
-  tags: string;
-
+// ── valores do formulário (flat, nomes = colunas) ────────────
+type FV = Record<string, string | boolean | ExameEntry[]> & {
   responsavel_id: string;
   exames: ExameEntry[];
 };
 
-function defaults(caso?: CasoRow | null, meId?: string): FormValues {
-  const ex = caso?.exames ?? [];
-  return {
-    paciente_nome: caso?.paciente_nome ?? '',
-    idade: caso?.idade ?? '',
-    sexo: caso?.sexo ?? '',
-    uf: caso?.uf ?? '',
-    cidade: caso?.cidade ?? '',
-    congregacao: caso?.congregacao ?? '',
-    batizado: caso?.batizado ?? false,
-    nome_mae: caso?.nome_mae ?? '',
-    mae_batizada: caso?.mae_batizada ?? false,
-    nome_pai: caso?.nome_pai ?? '',
-    pai_batizado: caso?.pai_batizado ?? false,
-    hospital_nome: caso?.hospital_nome ?? '',
-    num_quarto: caso?.num_quarto ?? '',
-    tele_hospital: caso?.tele_hospital ?? '',
-    plano_nome: caso?.plano_nome ?? '',
-    tipo_atendimento: caso?.tipo_atendimento ?? '',
-    nome_telefonou: caso?.nome_telefonou ?? '',
-    parentesco_telefonou: caso?.parentesco_telefonou ?? '',
-    paciente_solicitou_ajuda: caso?.paciente_solicitou_ajuda ?? false,
-    acompanhante_nome: caso?.acompanhante_nome ?? '',
-    telefone_paciente: caso?.telefone_paciente ?? '',
-    telefone_acompanhante: caso?.telefone_acompanhante ?? '',
-    anciaos_contatados: caso?.anciaos_contatados ?? '',
-    anciaos_cont_tel: caso?.anciaos_cont_tel ?? '',
-    medico_responsavel: caso?.medico_responsavel ?? '',
-    especialidade: caso?.especialidade ?? '',
-    morbidade: caso?.morbidade ?? '',
-    info_medica: caso?.info_medica ?? '',
-    plano_tratamento: caso?.plano_tratamento ?? '',
-    estrategia: caso?.estrategia ?? '',
-    artigos_medicos: caso?.artigos_medicos ?? '',
-    resumo: caso?.resumo ?? '',
-    outras_infos: caso?.outras_infos ?? '',
-    transpac: caso?.transpac ?? false,
-    transfundido: caso?.transfundido ?? false,
-    gvp: caso?.gvp ?? false,
-    tags: (caso?.tags ?? []).join(', '),
-    responsavel_id: caso?.responsavel_id ?? meId ?? '',
-    exames: [0, 1, 2].map((i) => ex[i] ?? {}),
-  };
+const TEXT_FIELDS = [
+  'data_hora_contato', 'nome_telefonou', 'contato_telefonou', 'parentesco_telefonou',
+  'paciente_nome', 'sexo', 'comentario_plano', 'idade', 'nome_pai', 'nome_mae',
+  'comentario_familia', 'hospital_nome', 'num_quarto', 'tele_hospital', 'tipo_atendimento',
+  'plano_nome', 'congregacao', 'cidade', 'uf', 'anciaos_contatados', 'anciaos_cont_tel',
+  'rn_peso', 'rn_idade_gestacional', 'rn_data_nascimento', 'rn_apgar_nascimento', 'rn_apgar_5min',
+  'morbidade', 'info_medica', 'medico_responsavel', 'especialidade', 'outro_medico',
+  'outro_medico_especialidade', 'plano_tratamento', 'estrategia', 'artigos_medicos',
+  'medico_consultor_nome', 'medico_consultor_contato', 'medico_consultor_especialidade',
+  'medico_consultor_outras', 'transf_hospital_destino', 'transf_medico_destino',
+  'transf_telefone_destino', 'outras_infos', 'resumo', 'tags',
+] as const;
+
+const BOOL_FIELDS = [
+  'paciente_solicitou_ajuda', 'batizado', 'boa_condicao_espiritual', 'cartao_diretivas_ok',
+  'mae_batizada', 'pai_batizado', 'equipe_informada', 'medico_disposto_cooperar',
+  'transf_procedimentos_confirmados', 'transf_hid_informado', 'anciaos_acompanhamento',
+  'transpac', 'transfundido', 'gvp',
+] as const;
+
+function defaults(c: CasoRow | null | undefined, meId?: string): FV {
+  const v: FV = { responsavel_id: c?.responsavel_id ?? meId ?? '', exames: [{}, {}, {}] };
+  for (const f of TEXT_FIELDS) {
+    v[f] = f === 'tags' ? (c?.tags ?? []).join(', ') : ((c?.[f as keyof CasoRow] as string) ?? '');
+  }
+  for (const f of BOOL_FIELDS) v[f] = (c?.[f as keyof CasoRow] as boolean) ?? false;
+  const ex = c?.exames ?? [];
+  v.exames = [0, 1, 2].map((i) => ex[i] ?? {});
+  return v;
 }
 
-const nil = (s: string) => (s.trim() ? s.trim() : null);
+const nil = (s: unknown) => (typeof s === 'string' && s.trim() ? s.trim() : null);
 
-function toPayload(v: FormValues) {
-  const exames = v.exames
+function toPayload(v: FV) {
+  const out: Record<string, unknown> = {};
+  for (const f of TEXT_FIELDS) {
+    if (f === 'tags') continue;
+    out[f] = nil(v[f]);
+  }
+  for (const f of BOOL_FIELDS) out[f] = Boolean(v[f]);
+  out.tags = String(v.tags)
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  out.exames = (v.exames as ExameEntry[])
     .map((e) => ({
       data: e.data?.trim() || undefined,
       hb: e.hb?.trim() || undefined,
@@ -123,50 +87,7 @@ function toPayload(v: FormValues) {
       outro: e.outro?.trim() || undefined,
     }))
     .filter((e) => Object.values(e).some(Boolean));
-
-  return {
-    paciente_nome: nil(v.paciente_nome),
-    idade: nil(v.idade),
-    sexo: nil(v.sexo),
-    uf: nil(v.uf),
-    cidade: nil(v.cidade),
-    congregacao: nil(v.congregacao),
-    batizado: v.batizado,
-    nome_mae: nil(v.nome_mae),
-    mae_batizada: v.mae_batizada,
-    nome_pai: nil(v.nome_pai),
-    pai_batizado: v.pai_batizado,
-    hospital_nome: nil(v.hospital_nome),
-    num_quarto: nil(v.num_quarto),
-    tele_hospital: nil(v.tele_hospital),
-    plano_nome: nil(v.plano_nome),
-    tipo_atendimento: nil(v.tipo_atendimento),
-    nome_telefonou: nil(v.nome_telefonou),
-    parentesco_telefonou: nil(v.parentesco_telefonou),
-    paciente_solicitou_ajuda: v.paciente_solicitou_ajuda,
-    acompanhante_nome: nil(v.acompanhante_nome),
-    telefone_paciente: nil(v.telefone_paciente),
-    telefone_acompanhante: nil(v.telefone_acompanhante),
-    anciaos_contatados: nil(v.anciaos_contatados),
-    anciaos_cont_tel: nil(v.anciaos_cont_tel),
-    medico_responsavel: nil(v.medico_responsavel),
-    especialidade: nil(v.especialidade),
-    morbidade: nil(v.morbidade),
-    info_medica: nil(v.info_medica),
-    plano_tratamento: nil(v.plano_tratamento),
-    estrategia: nil(v.estrategia),
-    artigos_medicos: nil(v.artigos_medicos),
-    resumo: nil(v.resumo),
-    outras_infos: nil(v.outras_infos),
-    transpac: v.transpac,
-    transfundido: v.transfundido,
-    gvp: v.gvp,
-    tags: v.tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean),
-    exames,
-  };
+  return out;
 }
 
 export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
@@ -185,15 +106,14 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
     queryFn: listMembrosParaSelecao,
     enabled: mode === 'novo',
   });
-
-  const { register, handleSubmit, reset, watch, setValue, formState } = useForm<FormValues>({
-    defaultValues: defaults(null, membro?.id),
-  });
-
-  const congregacoesQ = useQuery({
+  const congsQ = useQuery({
     queryKey: ['congregacoes'],
     queryFn: listCongregacoes,
-    staleTime: 60 * 60 * 1000,
+    staleTime: 3_600_000,
+  });
+
+  const { register, handleSubmit, reset, watch, setValue, formState } = useForm<FV>({
+    defaultValues: defaults(null, membro?.id),
   });
 
   useEffect(() => {
@@ -201,7 +121,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
   }, [mode, casoQ.data, membro?.id, reset]);
 
   const mutation = useMutation({
-    mutationFn: async (v: FormValues) => {
+    mutationFn: async (v: FV) => {
       const payload = toPayload(v);
       if (mode === 'novo') {
         const respNome =
@@ -224,8 +144,6 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
     },
   });
 
-  const membroOpcoes = useMemo(() => membrosQ.data ?? [], [membrosQ.data]);
-
   if (mode === 'editar' && casoQ.isLoading) {
     return (
       <div className="flex justify-center p-8 text-gray-400">
@@ -242,10 +160,13 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
     );
   }
 
+  const t = (name: (typeof TEXT_FIELDS)[number]) => register(name);
+  const b = (name: (typeof BOOL_FIELDS)[number]) => register(name);
+
   return (
     <form
       onSubmit={handleSubmit((v) => mutation.mutate(v))}
-      className="mx-auto max-w-3xl space-y-4"
+      className="mx-auto max-w-4xl space-y-4 pb-10"
     >
       <button
         type="button"
@@ -254,191 +175,377 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
       >
         ← Voltar
       </button>
-      <h1 className="text-xl font-semibold text-gray-900">
-        {mode === 'novo' ? 'Novo caso' : 'Editar caso'}
-      </h1>
 
       {mutation.error && <Alert tone="error">{(mutation.error as Error).message}</Alert>}
 
-      <Sec title="Paciente">
-        <Grid>
-          <F label="Nome do paciente">
-            <Input {...register('paciente_nome', { required: true })} />
-          </F>
-          <F label="Idade">
-            <Input {...register('idade')} />
-          </F>
-          <F label="Sexo">
-            <Select {...register('sexo')}>
+      <Sheet>
+        <SheetTitle>Planilha de Emergência Médica</SheetTitle>
+
+        {/* NOTIFICAÇÃO */}
+        <Band tone="green">Notificação</Band>
+        <Row cols={3}>
+          <Cell label="Data/hora do contato">
+            <FInput {...t('data_hora_contato')} />
+          </Cell>
+          <Cell label="Quem telefonou">
+            <FInput {...t('nome_telefonou')} />
+          </Cell>
+          <Cell label="Contato da pessoa que telefonou">
+            <FInput {...t('contato_telefonou')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell>
+            <label className="flex items-center gap-2">
+              <FCheck {...b('paciente_solicitou_ajuda')} />
+              Paciente solicitou ajuda da Colih
+            </label>
+          </Cell>
+          <Cell label="Parentesco com o paciente">
+            <FInput {...t('parentesco_telefonou')} />
+          </Cell>
+        </Row>
+
+        {/* PACIENTE E HOSPITAL */}
+        <Band tone="green">Informações sobre o paciente e o hospital</Band>
+        <Row cols={2}>
+          <Cell label="Nome do paciente">
+            <FInput {...register('paciente_nome', { required: true })} />
+          </Cell>
+          <Cell label="Sexo">
+            <FSelect {...t('sexo')}>
               <option value="">—</option>
               <option>Feminino</option>
               <option>Masculino</option>
-            </Select>
-          </F>
-          <F label="Cidade">
-            <Input {...register('cidade')} />
-          </F>
-          <F label="UF">
-            <Input {...register('uf')} maxLength={2} />
-          </F>
-          <F label="Congregação">
-            <Combobox
-              value={watch('congregacao')}
-              onChange={(v) => setValue('congregacao', v, { shouldDirty: true })}
-              options={congregacoesQ.data ?? []}
-              placeholder="Buscar congregação…"
-            />
-          </F>
-        </Grid>
-        <Checks
-          register={register}
-          items={[
-            ['batizado', 'Paciente batizado'],
-            ['mae_batizada', 'Mãe batizada'],
-            ['pai_batizado', 'Pai batizado'],
-          ]}
-        />
-        <Grid>
-          <F label="Nome da mãe">
-            <Input {...register('nome_mae')} />
-          </F>
-          <F label="Nome do pai">
-            <Input {...register('nome_pai')} />
-          </F>
-        </Grid>
-      </Sec>
-
-      <Sec title="Contato">
-        <Grid>
-          <F label="Quem telefonou">
-            <Input {...register('nome_telefonou')} />
-          </F>
-          <F label="Parentesco com o paciente">
-            <Input {...register('parentesco_telefonou')} />
-          </F>
-          <F label="Acompanhante">
-            <Input {...register('acompanhante_nome')} />
-          </F>
-          <F label="Telefone do paciente">
-            <Input {...register('telefone_paciente')} />
-          </F>
-          <F label="Telefone do acompanhante">
-            <Input {...register('telefone_acompanhante')} />
-          </F>
-          <F label="Anciãos contatados">
-            <Input {...register('anciaos_contatados')} />
-          </F>
-          <F label="Telefone dos anciãos">
-            <Input {...register('anciaos_cont_tel')} />
-          </F>
-        </Grid>
-        <Checks
-          register={register}
-          items={[['paciente_solicitou_ajuda', 'Paciente solicitou ajuda']]}
-        />
-      </Sec>
-
-      <Sec title="Atendimento">
-        <Grid>
-          <F label="Hospital">
-            <Input {...register('hospital_nome')} />
-          </F>
-          <F label="Quarto">
-            <Input {...register('num_quarto')} />
-          </F>
-          <F label="Telefone do hospital">
-            <Input {...register('tele_hospital')} />
-          </F>
-          <F label="Tipo de atendimento">
-            <Select {...register('tipo_atendimento')}>
+            </FSelect>
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Comentários (p. ex., nome e área de abrangência do plano de saúde)">
+            <FTextarea rows={2} {...t('comentario_plano')} />
+          </Cell>
+          <Cell label="Idade">
+            <FInput {...t('idade')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Nome do pai">
+            <FInput {...t('nome_pai')} />
+            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+              <FCheck {...b('pai_batizado')} /> Batizado?
+            </label>
+          </Cell>
+          <Cell label="Nome da mãe">
+            <FInput {...t('nome_mae')} />
+            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+              <FCheck {...b('mae_batizada')} /> Batizada?
+            </label>
+          </Cell>
+        </Row>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-800">
+          <label className="flex items-center gap-2">
+            <FCheck {...b('batizado')} /> Paciente batizado?
+          </label>
+          <label className="flex items-center gap-2">
+            <FCheck {...b('boa_condicao_espiritual')} /> Boa condição espiritual?
+          </label>
+          <label className="flex items-center gap-2">
+            <FCheck {...b('cartao_diretivas_ok')} /> Cartão Diretivas completo?
+          </label>
+        </div>
+        <BlockCell label="Comentários (condição espiritual da família, etc.)">
+          <FTextarea rows={2} {...t('comentario_familia')} />
+        </BlockCell>
+        <Row cols={1}>
+          <Cell label="Nome do hospital">
+            <FInput {...t('hospital_nome')} />
+          </Cell>
+        </Row>
+        <Row cols={4}>
+          <Cell label="N.° do quarto">
+            <FInput {...t('num_quarto')} />
+          </Cell>
+          <Cell label="Telefone do hospital">
+            <FInput {...t('tele_hospital')} />
+          </Cell>
+          <Cell label="Tipo de atendimento">
+            <FSelect {...t('tipo_atendimento')}>
               <option value="">—</option>
               <option value="publico">Público (SUS)</option>
               <option value="plano">Plano / convênio</option>
               <option value="particular">Particular</option>
-            </Select>
-          </F>
-          <F label="Plano / convênio">
-            <Input {...register('plano_nome')} />
-          </F>
-        </Grid>
-      </Sec>
+            </FSelect>
+          </Cell>
+          <Cell label="Plano / convênio">
+            <FInput {...t('plano_nome')} />
+          </Cell>
+        </Row>
+        <Row cols={1}>
+          <Cell label="Congregação">
+            <Combobox
+              value={String(watch('congregacao') ?? '')}
+              onChange={(val) => setValue('congregacao', val, { shouldDirty: true })}
+              options={congsQ.data ?? []}
+              placeholder="Buscar congregação…"
+            />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Nomes dos anciãos contatados">
+            <FInput {...t('anciaos_contatados')} />
+          </Cell>
+          <Cell label="Telefones de contato dos anciãos">
+            <FInput {...t('anciaos_cont_tel')} />
+          </Cell>
+        </Row>
 
-      {mode === 'novo' && (
-        <Sec title="Responsável">
-          <F label="Membro responsável">
-            <Select {...register('responsavel_id')}>
-              <option value={membro!.id}>{membro!.nome} (eu)</option>
-              {membroOpcoes
-                .filter((m) => m.id !== membro!.id)
-                .map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-            </Select>
-          </F>
-        </Sec>
-      )}
+        <Band tone="green">Recém-nascidos</Band>
+        <Row cols={3}>
+          <Cell label="Peso ao nascer">
+            <FInput {...t('rn_peso')} />
+          </Cell>
+          <Cell label="Idade gestacional (semanas)">
+            <FInput {...t('rn_idade_gestacional')} />
+          </Cell>
+          <Cell label="Data de nascimento">
+            <FInput {...t('rn_data_nascimento')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Pontuação APGAR — Nascimento">
+            <FInput {...t('rn_apgar_nascimento')} />
+          </Cell>
+          <Cell label="Pontuação APGAR — 5 min">
+            <FInput {...t('rn_apgar_5min')} />
+          </Cell>
+        </Row>
 
-      <Sec title="Médico / clínico">
-        <Grid>
-          <F label="Médico responsável">
-            <Input {...register('medico_responsavel')} />
-          </F>
-          <F label="Especialidade">
-            <Input {...register('especialidade')} />
-          </F>
-        </Grid>
-        <F label="Morbidade">
-          <Input {...register('morbidade')} />
-        </F>
-        <F label="Estratégia / opções">
-          <Textarea {...register('estrategia')} />
-        </F>
-        <F label="Plano de tratamento">
-          <Textarea {...register('plano_tratamento')} />
-        </F>
-        <F label="Artigos médicos">
-          <Textarea {...register('artigos_medicos')} />
-        </F>
-        <F label="Resumo">
-          <Textarea {...register('resumo')} />
-        </F>
-        <F label="Outras informações">
-          <Textarea {...register('outras_infos')} />
-        </F>
-        <F label="Histórico do caso">
-          <Textarea rows={6} {...register('info_medica')} />
-        </F>
-        <Checks
-          register={register}
-          items={[
-            ['transpac', 'Transpac'],
-            ['transfundido', 'Transfundido'],
-            ['gvp', 'Em grupo (GVP)'],
-          ]}
-        />
-        <F label="Tags (separadas por vírgula)">
-          <Input {...register('tags')} placeholder="ONCO-HEMATO, PLANO" />
-        </F>
-      </Sec>
+        {/* INFORMAÇÕES MÉDICAS */}
+        <Band tone="green">Informações médicas sobre o caso</Band>
+        <BlockCell
+          label="Problema específico"
+          hint="Qual é o diagnóstico médico? Por que a questão do sangue está envolvida (sangramento, bebê prematuro, anemia)?"
+        >
+          <FTextarea rows={3} {...t('morbidade')} />
+        </BlockCell>
+        <BlockCell
+          label="Histórico de saúde ligado ao problema"
+          hint="O que causou a emergência atual?"
+        >
+          <FTextarea rows={6} {...t('info_medica')} />
+        </BlockCell>
 
-      <Sec title="Exames">
-        <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-5">
-              <Input placeholder="Data" {...register(`exames.${i}.data` as const)} />
-              <Input placeholder="Hb" {...register(`exames.${i}.hb` as const)} />
-              <Input placeholder="Ht" {...register(`exames.${i}.ht` as const)} />
-              <Input placeholder="Plaquetas" {...register(`exames.${i}.plq` as const)} />
-              <Input placeholder="Outro" {...register(`exames.${i}.outro` as const)} />
-            </div>
-          ))}
+        {/* VALORES LABORATORIAIS */}
+        <Band tone="orange">Valores laboratoriais</Band>
+        {[0, 1, 2].map((i) => (
+          <Row key={i} cols={4}>
+            <Cell label={`Exame ${i + 1} — data/hora`}>
+              <FInput {...register(`exames.${i}.data` as const)} />
+            </Cell>
+            <Cell label="Hemoglobina (Hb g/dL)">
+              <FInput {...register(`exames.${i}.hb` as const)} />
+            </Cell>
+            <Cell label="Hematócrito (Ht %)">
+              <FInput {...register(`exames.${i}.ht` as const)} />
+            </Cell>
+            <Cell label="Plaquetas (Plq/μL)">
+              <FInput {...register(`exames.${i}.plq` as const)} />
+            </Cell>
+          </Row>
+        ))}
+        <Row cols={1}>
+          <Cell label="Outro (qualquer exame)">
+            <FInput {...register('exames.0.outro' as const)} placeholder="ex.: RNI 1,01" />
+          </Cell>
+        </Row>
+        <ValoresReferencia />
+
+        {/* MÉDICOS */}
+        <Band tone="green">Informações sobre o(s) médico(s)</Band>
+        <Row cols={2}>
+          <Cell label="Médico responsável">
+            <FInput {...t('medico_responsavel')} />
+          </Cell>
+          <Cell label="Especialidade">
+            <FInput {...t('especialidade')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Outro médico">
+            <FInput {...t('outro_medico')} />
+          </Cell>
+          <Cell label="Especialidade">
+            <FInput {...t('outro_medico_especialidade')} />
+          </Cell>
+        </Row>
+
+        {/* PLANO DE TRATAMENTO */}
+        <Band tone="green" hint="Exames, procedimentos ou tratamentos oferecidos">
+          Plano de tratamento médico
+        </Band>
+        <CheckRow>
+          <FCheck {...b('equipe_informada')} />
+          A equipe médica foi informada de que o paciente pediu ajuda da Colih?
+        </CheckRow>
+        <BlockCell>
+          <FTextarea rows={5} {...t('plano_tratamento')} />
+        </BlockCell>
+
+        <PageMark>Página 2</PageMark>
+
+        {/* ESTRATÉGIAS */}
+        <Band
+          tone="blue"
+          hint="Especifique os tratamentos, procedimentos ou técnicas a serem apresentados aos médicos."
+        >
+          Estratégias / opções de tratamento
+        </Band>
+        <BlockCell>
+          <FTextarea rows={6} {...t('estrategia')} />
+        </BlockCell>
+
+        {/* ARTIGOS */}
+        <Band
+          tone="blue"
+          hint="Quais artigos foram fornecidos às equipes médicas (ou indicados para consulta no jw.org)."
+        >
+          Artigos médicos
+        </Band>
+        <BlockCell>
+          <FTextarea rows={5} {...t('artigos_medicos')} />
+        </BlockCell>
+        <CheckRow>
+          <FCheck {...b('medico_disposto_cooperar')} />
+          Depois de analisar os artigos de apoio, o médico está disposto a cooperar?
+        </CheckRow>
+
+        {/* MÉDICO CONSULTOR */}
+        <Band
+          tone="blue"
+          hint="O médico responsável está disposto a contatar um especialista experiente em tratamento sem sangue?"
+        >
+          Contato de um médico consultor
+        </Band>
+        <Row cols={2}>
+          <Cell label="Nome do médico consultor">
+            <FInput {...t('medico_consultor_nome')} />
+          </Cell>
+          <Cell label="Preferências de contato">
+            <FInput {...t('medico_consultor_contato')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Especialidade">
+            <FInput {...t('medico_consultor_especialidade')} />
+          </Cell>
+          <Cell label="Outras informações">
+            <FInput {...t('medico_consultor_outras')} />
+          </Cell>
+        </Row>
+
+        {/* NECESSIDADE DE TRANSFERÊNCIA */}
+        <Band
+          tone="blue"
+          hint="A decisão é do paciente e/ou familiares. Descreva o método de transferência."
+        >
+          Necessidade de transferência (mudança de hospital)
+        </Band>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-800">
+          <label className="flex items-center gap-2">
+            <FCheck {...b('transf_procedimentos_confirmados')} /> Procedimentos para a
+            transferência já confirmados
+          </label>
+          <label className="flex items-center gap-2">
+            <FCheck {...b('transf_hid_informado')} /> HID já informado (transferência para região
+            de outra Colih)
+          </label>
         </div>
-      </Sec>
+        <Row cols={1}>
+          <Cell label="Nome do hospital de destino">
+            <FInput {...t('transf_hospital_destino')} />
+          </Cell>
+        </Row>
+        <Row cols={2}>
+          <Cell label="Médico responsável no destino">
+            <FInput {...t('transf_medico_destino')} />
+          </Cell>
+          <Cell label="Telefone de contato no destino">
+            <FInput {...t('transf_telefone_destino')} />
+          </Cell>
+        </Row>
+        <BlockCell label="Outras informações">
+          <FTextarea rows={3} {...t('outras_infos')} />
+        </BlockCell>
+
+        {/* RESULTADO / ACOMPANHAMENTO */}
+        <Band tone="orange" hint="Descreva o resultado e o acompanhamento, se houver.">
+          Resultado / acompanhamento
+        </Band>
+        <CheckRow>
+          <FCheck {...b('anciaos_acompanhamento')} />
+          Os anciãos locais foram contatados para dar acompanhamento
+        </CheckRow>
+        <BlockCell>
+          <FTextarea rows={4} {...t('resumo')} />
+        </BlockCell>
+
+        {/* dados internos do app */}
+        <Band tone="green">Controle interno (Casos Info)</Band>
+        {mode === 'novo' && (
+          <Row cols={1}>
+            <Cell label="Membro responsável">
+              <FSelect {...register('responsavel_id')}>
+                <option value={membro!.id}>{membro!.nome} (eu)</option>
+                {(membrosQ.data ?? [])
+                  .filter((m) => m.id !== membro!.id)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+              </FSelect>
+            </Cell>
+          </Row>
+        )}
+        <Row cols={2}>
+          <Cell label="Cidade">
+            <FInput {...t('cidade')} />
+          </Cell>
+          <Cell label="UF">
+            <FInput {...t('uf')} maxLength={2} />
+          </Cell>
+        </Row>
+        <Row cols={1}>
+          <Cell label="Tags (separadas por vírgula)">
+            <FInput {...t('tags')} placeholder="ONCO-HEMATO, PLANO" />
+          </Cell>
+        </Row>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 px-3 py-2 text-sm text-gray-800">
+          <label className="flex items-center gap-2">
+            <FCheck {...b('transpac')} /> Transpac
+          </label>
+          <label className="flex items-center gap-2">
+            <FCheck {...b('transfundido')} /> Transfundido
+          </label>
+          <label className="flex items-center gap-2">
+            <FCheck {...b('gvp')} /> Em grupo (GVP)
+          </label>
+        </div>
+      </Sheet>
+
+      <input type="hidden" {...register('congregacao')} />
+
+      <p className="text-xs text-gray-500">
+        OBSERVAÇÃO: foi mencionada uma possível <strong>ação judicial</strong>? Nesse caso, contate
+        imediatamente o Departamento de Informações sobre Hospitais.
+      </p>
 
       <div className="flex gap-2">
-        <Button type="submit" loading={mutation.isPending} disabled={!formState.isDirty && mode === 'editar'}>
+        <Button
+          type="submit"
+          loading={mutation.isPending}
+          disabled={!formState.isDirty && mode === 'editar'}
+        >
           {mode === 'novo' ? 'Criar caso' : 'Salvar'}
         </Button>
         <Button
@@ -449,44 +556,34 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
           Cancelar
         </Button>
       </div>
+
     </form>
   );
 }
 
-function Sec({ title, children }: { title: string; children: ReactNode }) {
+// ── inputs no estilo "formulário" (borda leve, fundo transparente) ──
+const fieldCls =
+  'block w-full rounded-sm border-0 bg-transparent px-1 py-0.5 text-sm text-gray-900 ' +
+  'ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-inset focus:ring-brand-500';
+
+function FInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={cn(fieldCls, props.className)} autoComplete="off" />;
+}
+function FTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={cn(fieldCls, 'resize-y', props.className)} />;
+}
+function FSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={cn(fieldCls, props.className)} />;
+}
+function FCheck(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="font-medium text-gray-900">{title}</h2>
-      </CardHeader>
-      <CardBody className="space-y-4">{children}</CardBody>
-    </Card>
-  );
-}
-
-function Grid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
-}
-
-function F({ label, children }: { label: string; children: ReactNode }) {
-  return <Field label={label}>{children}</Field>;
-}
-
-function Checks({
-  register,
-  items,
-}: {
-  register: UseFormRegister<FormValues>;
-  items: Array<[keyof FormValues, string]>;
-}) {
-  return (
-    <div className="flex flex-wrap gap-x-6 gap-y-2">
-      {items.map(([name, label]) => (
-        <label key={name} className="flex items-center gap-2 text-sm text-gray-700">
-          <Checkbox {...register(name as never)} />
-          {label}
-        </label>
-      ))}
-    </div>
+    <input
+      type="checkbox"
+      {...props}
+      className={cn(
+        'size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600',
+        props.className,
+      )}
+    />
   );
 }

@@ -12,3 +12,7 @@ export function formatDateTime(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '—' : dateTimeFmt.format(d);
 }
+
+export function boolLabel(v: boolean | null | undefined): string | null {
+  return v === true ? 'Sim' : v === false ? 'Não' : null;
+}

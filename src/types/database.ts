@@ -79,17 +79,32 @@ export type CasoRow = {
   numero: number | null;
   status: CasoStatus;
 
+  // notificação
+  data_hora_contato: string | null;
+  contato_telefonou: string | null;
+
   paciente_nome: string | null;
   idade: string | null;
   sexo: string | null;
   uf: string | null;
   cidade: string | null;
   congregacao: string | null;
+  comentario_plano: string | null;
+  comentario_familia: string | null;
   batizado: boolean | null;
+  boa_condicao_espiritual: boolean | null;
+  cartao_diretivas_ok: boolean | null;
   mae_batizada: boolean | null;
   pai_batizado: boolean | null;
   nome_mae: string | null;
   nome_pai: string | null;
+
+  // recém-nascido
+  rn_peso: string | null;
+  rn_idade_gestacional: string | null;
+  rn_data_nascimento: string | null;
+  rn_apgar_nascimento: string | null;
+  rn_apgar_5min: string | null;
 
   hospital_nome: string | null;
   num_quarto: string | null;
@@ -115,17 +130,37 @@ export type CasoRow = {
 
   medico_responsavel: string | null;
   especialidade: string | null;
+  outro_medico: string | null;
+  outro_medico_especialidade: string | null;
   morbidade: string | null;
   info_medica: string | null;
   plano_tratamento: string | null;
+  equipe_informada: boolean | null;
+  equipe_coopera: boolean | null;
   estrategia: string | null;
   artigos_medicos: string | null;
+  medico_disposto_cooperar: boolean | null;
   resumo: string | null;
   outras_infos: string | null;
+  anciaos_acompanhamento: boolean | null;
+
+  // médico consultor
+  medico_consultor_nome: string | null;
+  medico_consultor_contato: string | null;
+  medico_consultor_especialidade: string | null;
+  medico_consultor_outras: string | null;
 
   exames: ExameEntry[];
   anexos_urls: string[];
 
+  // necessidade de transferência (mudança de hospital)
+  transf_procedimentos_confirmados: boolean | null;
+  transf_hid_informado: boolean | null;
+  transf_hospital_destino: string | null;
+  transf_medico_destino: string | null;
+  transf_telefone_destino: string | null;
+
+  // transferência de responsável (workflow interno)
   em_transferencia: boolean | null;
   transferencia_data: string | null;
   transferencia_historico: string | null;

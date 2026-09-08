@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
@@ -12,14 +12,26 @@ import {
   recusarTransferencia,
   transferirCaso,
 } from '@/lib/queries/casos';
-import { formatDate, formatDateTime } from '@/lib/format';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { boolLabel, formatDateTime } from '@/lib/format';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CasoStatusBadge } from '@/components/ui/Badge';
+import {
+  Band,
+  BlockCell,
+  Cell,
+  CheckRow,
+  PageMark,
+  Row,
+  Sheet,
+  SheetTitle,
+  V,
+  ValoresReferencia,
+} from './hlc7-ui';
 import type { CasoRow } from '@/types/database';
 
 export function CasoDetailPage() {
@@ -44,7 +56,7 @@ export function CasoDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4 pb-10">
       <button
         onClick={() => navigate('/casos')}
         className="text-sm text-gray-500 hover:text-gray-800"
@@ -57,35 +69,60 @@ export function CasoDetailPage() {
       {completo.isLoading ? (
         <Loading />
       ) : completo.data ? (
-        <CasoCompleto caso={completo.data} onChanged={onChanged} />
+        <>
+          <TopBar caso={completo.data} />
+          <PendingTransferCard
+            casoId={id}
+            pendentePara={completo.data.transferencia_pendente_para}
+            onChanged={onChanged}
+          />
+          <CaseActions caso={completo.data} onChanged={onChanged} />
+          <HLC7View caso={completo.data} />
+        </>
       ) : resumo.isLoading ? (
         <Loading />
       ) : resumo.data ? (
         <div className="space-y-4">
-          <Header
-            nome={resumo.data.paciente_nome}
-            idCaso={resumo.data.id_caso}
-            status={resumo.data.status}
+          <TopBar
+            caso={{
+              id_caso: resumo.data.id_caso,
+              numero: resumo.data.numero,
+              status: resumo.data.status,
+              paciente_nome: resumo.data.paciente_nome,
+            }}
           />
-          <PendingTransferCard casoId={id} pendentePara={resumo.data.transferencia_pendente_para} onChanged={onChanged} />
+          <PendingTransferCard
+            casoId={id}
+            pendentePara={resumo.data.transferencia_pendente_para}
+            onChanged={onChanged}
+          />
           <Alert tone="info">
-            Acesso completo ao caso (prontuário) é restrito ao responsável, ao ajudante e à
-            administração geral.
+            O prontuário completo é visível apenas ao responsável, ao ajudante e à administração
+            geral.
           </Alert>
-          <Section title="Resumo">
-            <Detail label="Responsável" value={resumo.data.responsavel_nome} />
-            <Detail label="Ajudante" value={resumo.data.ajudante_nome} />
-            <Detail label="Hospital" value={resumo.data.hospital_nome} />
-            <Detail label="Congregação" value={resumo.data.congregacao} />
-            <Detail
-              label="Cidade / UF"
-              value={[resumo.data.cidade, resumo.data.uf].filter(Boolean).join(' / ') || null}
-            />
-            <Detail label="Aberto em" value={formatDate(resumo.data.aberto_em)} />
-            {resumo.data.status === 'encerrado' && (
-              <Detail label="Encerrado em" value={formatDate(resumo.data.encerrado_em)} />
-            )}
-          </Section>
+          <Sheet>
+            <Band tone="green">Resumo</Band>
+            <Row cols={2}>
+              <Cell label="Responsável">
+                <V>{resumo.data.responsavel_nome}</V>
+              </Cell>
+              <Cell label="Ajudante">
+                <V>{resumo.data.ajudante_nome}</V>
+              </Cell>
+              <Cell label="Hospital">
+                <V>{resumo.data.hospital_nome}</V>
+              </Cell>
+              <Cell label="Congregação">
+                <V>{resumo.data.congregacao}</V>
+              </Cell>
+              <Cell label="Cidade / UF">
+                <V>{[resumo.data.cidade, resumo.data.uf].filter(Boolean).join(' / ') || null}</V>
+              </Cell>
+              <Cell label="Aberto em">
+                <V>{formatDateTime(resumo.data.aberto_em)}</V>
+              </Cell>
+            </Row>
+          </Sheet>
         </div>
       ) : (
         <Alert tone="warning">Caso não encontrado.</Alert>
@@ -102,109 +139,298 @@ function Loading() {
   );
 }
 
-function CasoCompleto({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => void }) {
+function TopBar({
+  caso,
+}: {
+  caso: Pick<CasoRow, 'id_caso' | 'numero' | 'status' | 'paciente_nome'>;
+}) {
   return (
-    <div className="space-y-4">
-      <Header nome={c.paciente_nome} idCaso={c.id_caso} status={c.status} />
-      <PendingTransferCard
-        casoId={c.id}
-        pendentePara={c.transferencia_pendente_para}
-        onChanged={onChanged}
-      />
-      <CaseActions caso={c} onChanged={onChanged} />
+    <div className="flex flex-wrap items-center gap-3">
+      <h1 className="text-xl font-semibold text-gray-900">
+        {caso.paciente_nome ?? '(sem nome)'}
+      </h1>
+      {caso.id_caso && <span className="font-mono text-sm text-gray-400">{caso.id_caso}</span>}
+      {caso.numero != null && <span className="text-sm text-gray-400">#{caso.numero}</span>}
+      <CasoStatusBadge status={caso.status} />
+    </div>
+  );
+}
 
-      <Section title="Paciente">
-        <Detail label="Idade" value={c.idade} />
-        <Detail label="Sexo" value={c.sexo} />
-        <Detail
-          label="Cidade / UF"
-          value={[c.cidade, c.uf].filter(Boolean).join(' / ') || null}
-        />
-        <Detail label="Congregação" value={c.congregacao} />
-        <Detail label="Batizado" value={simNao(c.batizado)} />
-        <Detail label="Nome da mãe" value={c.nome_mae} />
-        <Detail label="Mãe batizada" value={simNao(c.mae_batizada)} />
-        <Detail label="Nome do pai" value={c.nome_pai} />
-        <Detail label="Pai batizado" value={simNao(c.pai_batizado)} />
-      </Section>
+// ── HLC-7 (só leitura) ───────────────────────────────────────
 
-      <Section title="Responsáveis">
-        <Detail label="Responsável" value={c.responsavel_nome} />
-        <Detail label="Ajudante" value={c.ajudante_nome} />
-        <Detail label="Em grupo (GVP)" value={simNao(c.gvp)} />
-      </Section>
+function HLC7View({ caso: c }: { caso: CasoRow }) {
+  const sim = (v: boolean | null | undefined) => boolLabel(v);
+  return (
+    <Sheet>
+      <SheetTitle>Planilha de Emergência Médica</SheetTitle>
 
-      <Section title="Contato">
-        <Detail label="Quem telefonou" value={c.nome_telefonou} />
-        <Detail label="Parentesco" value={c.parentesco_telefonou} />
-        <Detail label="Paciente solicitou ajuda" value={simNao(c.paciente_solicitou_ajuda)} />
-        <Detail label="Acompanhante" value={c.acompanhante_nome} />
-        <Detail label="Telefone do paciente" value={c.telefone_paciente} />
-        <Detail label="Telefone do acompanhante" value={c.telefone_acompanhante} />
-        <Detail label="Anciãos contatados" value={c.anciaos_contatados} />
-        <Detail label="Telefone dos anciãos" value={c.anciaos_cont_tel} />
-      </Section>
+      <Band tone="green">Notificação</Band>
+      <Row cols={3}>
+        <Cell label="Data/hora do contato">
+          <V>{c.data_hora_contato}</V>
+        </Cell>
+        <Cell label="Quem telefonou">
+          <V>{c.nome_telefonou}</V>
+        </Cell>
+        <Cell label="Contato de quem telefonou">
+          <V>{c.contato_telefonou}</V>
+        </Cell>
+      </Row>
+      <Row cols={2}>
+        <Cell label="Paciente solicitou ajuda da Colih">
+          <V>{sim(c.paciente_solicitou_ajuda)}</V>
+        </Cell>
+        <Cell label="Parentesco com o paciente">
+          <V>{c.parentesco_telefonou}</V>
+        </Cell>
+      </Row>
 
-      <Section title="Atendimento">
-        <Detail label="Hospital" value={c.hospital_nome} />
-        <Detail label="Quarto" value={c.num_quarto} />
-        <Detail label="Telefone do hospital" value={c.tele_hospital} />
-        <Detail label="Tipo" value={c.tipo_atendimento} />
-        <Detail label="Plano" value={c.plano_nome} />
-      </Section>
+      <Band tone="green">Informações sobre o paciente e o hospital</Band>
+      <Row cols={2}>
+        <Cell label="Nome do paciente">
+          <V>{c.paciente_nome}</V>
+        </Cell>
+        <Cell label="Sexo">
+          <V>{c.sexo}</V>
+        </Cell>
+        <Cell label="Comentários (plano de saúde)">
+          <V>{c.comentario_plano}</V>
+        </Cell>
+        <Cell label="Idade">
+          <V>{c.idade}</V>
+        </Cell>
+        <Cell label="Nome do pai">
+          <V>{c.nome_pai}</V> · Batizado? <V>{sim(c.pai_batizado)}</V>
+        </Cell>
+        <Cell label="Nome da mãe">
+          <V>{c.nome_mae}</V> · Batizada? <V>{sim(c.mae_batizada)}</V>
+        </Cell>
+      </Row>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-700">
+        <span>Paciente batizado? <V>{sim(c.batizado)}</V></span>
+        <span>Boa condição espiritual? <V>{sim(c.boa_condicao_espiritual)}</V></span>
+        <span>Cartão Diretivas completo? <V>{sim(c.cartao_diretivas_ok)}</V></span>
+      </div>
+      <BlockCell label="Comentários (condição espiritual da família)">
+        <V>{c.comentario_familia}</V>
+      </BlockCell>
+      <Row cols={1}>
+        <Cell label="Nome do hospital">
+          <V>{c.hospital_nome}</V>
+        </Cell>
+      </Row>
+      <Row cols={4}>
+        <Cell label="N.° do quarto">
+          <V>{c.num_quarto}</V>
+        </Cell>
+        <Cell label="Telefone do hospital">
+          <V>{c.tele_hospital}</V>
+        </Cell>
+        <Cell label="Tipo de atendimento">
+          <V>{c.tipo_atendimento}</V>
+        </Cell>
+        <Cell label="Plano / convênio">
+          <V>{c.plano_nome}</V>
+        </Cell>
+      </Row>
+      <Row cols={2}>
+        <Cell label="Congregação">
+          <V>{c.congregacao}</V>
+        </Cell>
+        <Cell label="Cidade / UF">
+          <V>{[c.cidade, c.uf].filter(Boolean).join(' / ') || null}</V>
+        </Cell>
+      </Row>
+      <Row cols={2}>
+        <Cell label="Nomes dos anciãos contatados">
+          <V>{c.anciaos_contatados}</V>
+        </Cell>
+        <Cell label="Telefones de contato dos anciãos">
+          <V>{c.anciaos_cont_tel}</V>
+        </Cell>
+      </Row>
 
-      <Section title="Médico / clínico">
-        <Detail label="Médico responsável" value={c.medico_responsavel} />
-        <Detail label="Especialidade" value={c.especialidade} />
-        <Detail label="Morbidade" value={c.morbidade} />
-        <Detail label="Estratégia / opções" value={c.estrategia} block />
-        <Detail label="Plano de tratamento" value={c.plano_tratamento} block />
-        <Detail label="Artigos médicos" value={c.artigos_medicos} block />
-        <Detail label="Resumo" value={c.resumo} block />
-        <Detail label="Outras informações" value={c.outras_infos} block />
-        <Detail label="Histórico do caso" value={c.info_medica} block />
-      </Section>
-
-      {c.exames.length > 0 && (
-        <Section title="Exames">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="py-1 pr-4">Data</th>
-                  <th className="py-1 pr-4">Hb</th>
-                  <th className="py-1 pr-4">Ht</th>
-                  <th className="py-1 pr-4">Plaquetas</th>
-                  <th className="py-1">Outro</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c.exames.map((e, i) => (
-                  <tr key={i} className="border-t border-gray-100">
-                    <td className="py-1 pr-4">{e.data ?? '—'}</td>
-                    <td className="py-1 pr-4">{e.hb ?? '—'}</td>
-                    <td className="py-1 pr-4">{e.ht ?? '—'}</td>
-                    <td className="py-1 pr-4">{e.plq ?? '—'}</td>
-                    <td className="py-1">{e.outro ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
+      {(c.rn_peso ||
+        c.rn_idade_gestacional ||
+        c.rn_data_nascimento ||
+        c.rn_apgar_nascimento ||
+        c.rn_apgar_5min) && (
+        <>
+          <Band tone="green">Recém-nascidos</Band>
+          <Row cols={3}>
+            <Cell label="Peso ao nascer">
+              <V>{c.rn_peso}</V>
+            </Cell>
+            <Cell label="Idade gestacional (semanas)">
+              <V>{c.rn_idade_gestacional}</V>
+            </Cell>
+            <Cell label="Data de nascimento">
+              <V>{c.rn_data_nascimento}</V>
+            </Cell>
+            <Cell label="APGAR — nascimento">
+              <V>{c.rn_apgar_nascimento}</V>
+            </Cell>
+            <Cell label="APGAR — 5 min">
+              <V>{c.rn_apgar_5min}</V>
+            </Cell>
+          </Row>
+        </>
       )}
 
-      <Section title="Transferência">
-        <Detail label="Em transferência" value={simNao(c.em_transferencia)} />
-        <Detail label="Última transferência" value={formatDateTime(c.transferencia_data)} />
-        <Detail label="Transpac" value={simNao(c.transpac)} />
-        <Detail label="Transfundido" value={simNao(c.transfundido)} />
-        <Detail label="Histórico" value={c.transferencia_historico} block />
-      </Section>
+      <Band tone="green">Informações médicas sobre o caso</Band>
+      <BlockCell label="Problema específico">
+        <V>{c.morbidade}</V>
+      </BlockCell>
+      <BlockCell label="Histórico de saúde ligado ao problema">
+        <V>{c.info_medica}</V>
+      </BlockCell>
 
+      <Band tone="orange">Valores laboratoriais</Band>
+      {c.exames.length === 0 ? (
+        <div className="border-b border-gray-300 px-3 py-2 text-sm text-gray-300">—</div>
+      ) : (
+        <div className="overflow-x-auto border-b border-gray-300 px-3 py-2">
+          <table className="min-w-full text-sm">
+            <thead className="text-left text-xs uppercase text-gray-500">
+              <tr>
+                <th className="py-1 pr-4">Data/hora</th>
+                <th className="py-1 pr-4">Hb</th>
+                <th className="py-1 pr-4">Ht</th>
+                <th className="py-1 pr-4">Plaquetas</th>
+                <th className="py-1">Outro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.exames.map((e, i) => (
+                <tr key={i} className="border-t border-gray-100">
+                  <td className="py-1 pr-4">{e.data ?? '—'}</td>
+                  <td className="py-1 pr-4">{e.hb ?? '—'}</td>
+                  <td className="py-1 pr-4">{e.ht ?? '—'}</td>
+                  <td className="py-1 pr-4">{e.plq ?? '—'}</td>
+                  <td className="py-1">{e.outro ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ValoresReferencia />
+
+      <Band tone="green">Informações sobre o(s) médico(s)</Band>
+      <Row cols={2}>
+        <Cell label="Médico responsável">
+          <V>{c.medico_responsavel}</V>
+        </Cell>
+        <Cell label="Especialidade">
+          <V>{c.especialidade}</V>
+        </Cell>
+        <Cell label="Outro médico">
+          <V>{c.outro_medico}</V>
+        </Cell>
+        <Cell label="Especialidade">
+          <V>{c.outro_medico_especialidade}</V>
+        </Cell>
+      </Row>
+
+      <Band tone="green" hint="Exames, procedimentos ou tratamentos oferecidos">
+        Plano de tratamento médico
+      </Band>
+      <CheckRow>
+        Equipe médica informada de que o paciente pediu ajuda da Colih?{' '}
+        <V>{sim(c.equipe_informada)}</V>
+      </CheckRow>
+      <BlockCell>
+        <V>{c.plano_tratamento}</V>
+      </BlockCell>
+
+      <PageMark>Página 2</PageMark>
+
+      <Band tone="blue">Estratégias / opções de tratamento</Band>
+      <BlockCell>
+        <V>{c.estrategia}</V>
+      </BlockCell>
+
+      <Band tone="blue">Artigos médicos</Band>
+      <BlockCell>
+        <V>{c.artigos_medicos}</V>
+      </BlockCell>
+      <CheckRow>
+        Médico disposto a cooperar após analisar os artigos? <V>{sim(c.medico_disposto_cooperar)}</V>
+      </CheckRow>
+
+      <Band tone="blue">Contato de um médico consultor</Band>
+      <Row cols={2}>
+        <Cell label="Nome do médico consultor">
+          <V>{c.medico_consultor_nome}</V>
+        </Cell>
+        <Cell label="Preferências de contato">
+          <V>{c.medico_consultor_contato}</V>
+        </Cell>
+        <Cell label="Especialidade">
+          <V>{c.medico_consultor_especialidade}</V>
+        </Cell>
+        <Cell label="Outras informações">
+          <V>{c.medico_consultor_outras}</V>
+        </Cell>
+      </Row>
+
+      <Band tone="blue">Necessidade de transferência (mudança de hospital)</Band>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-700">
+        <span>Procedimentos confirmados? <V>{sim(c.transf_procedimentos_confirmados)}</V></span>
+        <span>HID informado? <V>{sim(c.transf_hid_informado)}</V></span>
+      </div>
+      <Row cols={1}>
+        <Cell label="Hospital de destino">
+          <V>{c.transf_hospital_destino}</V>
+        </Cell>
+      </Row>
+      <Row cols={2}>
+        <Cell label="Médico responsável no destino">
+          <V>{c.transf_medico_destino}</V>
+        </Cell>
+        <Cell label="Telefone no destino">
+          <V>{c.transf_telefone_destino}</V>
+        </Cell>
+      </Row>
+      <BlockCell label="Outras informações">
+        <V>{c.outras_infos}</V>
+      </BlockCell>
+
+      <Band tone="orange">Resultado / acompanhamento</Band>
+      <CheckRow>
+        Anciãos locais contatados para acompanhamento? <V>{sim(c.anciaos_acompanhamento)}</V>
+      </CheckRow>
+      <BlockCell>
+        <V>{c.resumo}</V>
+      </BlockCell>
+
+      <Band tone="green">Controle interno (Casos Info)</Band>
+      <Row cols={2}>
+        <Cell label="Responsável">
+          <V>{c.responsavel_nome}</V>
+        </Cell>
+        <Cell label="Ajudante">
+          <V>{c.ajudante_nome}</V>
+        </Cell>
+        <Cell label="Tags">
+          <V>{c.tags.join(', ') || null}</V>
+        </Cell>
+        <Cell label="Marcadores">
+          <V>
+            {[c.transpac && 'Transpac', c.transfundido && 'Transfundido', c.gvp && 'GVP']
+              .filter(Boolean)
+              .join(' · ') || null}
+          </V>
+        </Cell>
+      </Row>
+      {c.transferencia_historico && (
+        <BlockCell label="Histórico de transferências (responsável)">
+          <V>{c.transferencia_historico}</V>
+        </BlockCell>
+      )}
       {c.anexos_urls.length > 0 && (
-        <Section title="Anexos">
-          <ul className="space-y-1 text-sm">
+        <BlockCell label="Anexos">
+          <ul className="space-y-1">
             {c.anexos_urls.map((u, i) => (
               <li key={i}>
                 <a
@@ -218,18 +444,44 @@ function CasoCompleto({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => 
               </li>
             ))}
           </ul>
-        </Section>
+        </BlockCell>
       )}
-
       <CamposAdicionais raw={c.bubble_raw} />
+      <div className="px-3 py-2 text-[11px] text-gray-400">
+        Aberto em {formatDateTime(c.aberto_em)} · Encerrado em {formatDateTime(c.encerrado_em)} ·
+        Atualização no Bubble {formatDateTime(c.atualizado_em_bubble)}
+      </div>
+    </Sheet>
+  );
+}
 
-      <Card>
-        <CardBody className="text-xs text-gray-500">
-          Aberto em {formatDateTime(c.aberto_em)} · Encerrado em{' '}
-          {formatDateTime(c.encerrado_em)} · Última atualização no Bubble{' '}
-          {formatDateTime(c.atualizado_em_bubble)}
-        </CardBody>
-      </Card>
+function CamposAdicionais({ raw }: { raw: Record<string, unknown> }) {
+  const [open, setOpen] = useState(false);
+  const entries = Object.entries(raw).filter(
+    ([, v]) => v !== null && v !== '' && !(Array.isArray(v) && v.length === 0),
+  );
+  if (entries.length === 0) return null;
+  return (
+    <div className="border-b border-gray-300">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-gray-700"
+      >
+        Campos adicionais (registro do Bubble)
+        <span className="text-gray-400">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <dl className="space-y-1 px-3 pb-3">
+          {entries.map(([k, v]) => (
+            <div key={k} className="flex gap-3 text-sm">
+              <dt className="w-56 shrink-0 font-mono text-xs text-gray-500">{k}</dt>
+              <dd className="whitespace-pre-wrap break-words text-gray-800">
+                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </div>
   );
 }
@@ -329,8 +581,7 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
         onConfirm={() => reabrir.mutate()}
         onCancel={() => setDialog(null)}
       >
-        O caso volta a ficar aberto. Os dados que já foram anonimizados no encerramento{' '}
-        <strong>não voltam</strong>.
+        O caso volta a ficar aberto. Os dados já anonimizados <strong>não voltam</strong>.
       </ConfirmDialog>
     </div>
   );
@@ -435,104 +686,3 @@ function PendingTransferCard({
     </Card>
   );
 }
-
-// ── helpers de layout ────────────────────────────────────────
-
-function Header({
-  nome,
-  idCaso,
-  status,
-}: {
-  nome: string | null;
-  idCaso: string | null;
-  status: CasoRow['status'];
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <h1 className="text-xl font-semibold text-gray-900">{nome ?? '(sem nome)'}</h1>
-      {idCaso && <span className="font-mono text-sm text-gray-400">{idCaso}</span>}
-      <CasoStatusBadge status={status} />
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <h2 className="font-medium text-gray-900">{title}</h2>
-      </CardHeader>
-      <CardBody>
-        <dl className="space-y-2.5">{children}</dl>
-      </CardBody>
-    </Card>
-  );
-}
-
-function Detail({
-  label,
-  value,
-  block,
-}: {
-  label: string;
-  value: string | null | undefined;
-  block?: boolean;
-}) {
-  if (!value || value === '—') return null;
-  return (
-    <div className={block ? 'space-y-1' : 'flex gap-3'}>
-      <dt
-        className={
-          block
-            ? 'text-xs font-medium uppercase text-gray-500'
-            : 'w-44 shrink-0 text-gray-500'
-        }
-      >
-        {label}
-      </dt>
-      <dd
-        className={block ? 'whitespace-pre-wrap text-sm text-gray-800' : 'text-gray-800'}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function CamposAdicionais({ raw }: { raw: Record<string, unknown> }) {
-  const [open, setOpen] = useState(false);
-  const entries = Object.entries(raw).filter(
-    ([, v]) => v !== null && v !== '' && !(Array.isArray(v) && v.length === 0),
-  );
-  if (entries.length === 0) return null;
-  return (
-    <Card>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left sm:px-6"
-      >
-        <span className="font-medium text-gray-900">
-          Campos adicionais (registro do Bubble)
-        </span>
-        <span className="text-gray-400">{open ? '−' : '+'}</span>
-      </button>
-      {open && (
-        <CardBody className="border-t border-gray-100">
-          <dl className="space-y-2">
-            {entries.map(([k, v]) => (
-              <div key={k} className="flex gap-3 text-sm">
-                <dt className="w-56 shrink-0 font-mono text-xs text-gray-500">{k}</dt>
-                <dd className="whitespace-pre-wrap break-words text-gray-800">
-                  {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </CardBody>
-      )}
-    </Card>
-  );
-}
-
-const simNao = (v: boolean | null | undefined) =>
-  v === true ? 'Sim' : v === false ? 'Não' : null;
