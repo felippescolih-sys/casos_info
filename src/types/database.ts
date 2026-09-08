@@ -72,6 +72,24 @@ export type ExameEntry = {
   outro?: string;
 };
 
+export type ContatoPaciente = {
+  nome?: string;
+  ddi?: string;
+  ddd?: string;
+  fone?: string;
+};
+
+export type CasoAnexoRow = {
+  id: string;
+  caso_id: string;
+  storage_path: string;
+  nome: string;
+  tamanho: number | null;
+  mime: string | null;
+  enviado_por: string | null;
+  created_at: string;
+};
+
 export type CasoRow = {
   id: string;
   legacy_bubble_id: string;
@@ -142,6 +160,8 @@ export type CasoRow = {
   medico_disposto_cooperar: boolean | null;
   resumo: string | null;
   outras_infos: string | null;
+  observacoes: string | null;
+  contatos_paciente: ContatoPaciente[];
   anciaos_acompanhamento: boolean | null;
 
   // médico consultor
@@ -235,6 +255,13 @@ export type Database = {
         Row: { nome: string; ativa: boolean; created_at: string };
         Insert: { nome: string; ativa?: boolean; created_at?: string };
         Update: { nome?: string; ativa?: boolean };
+        Relationships: [];
+      };
+      caso_anexos: {
+        Row: CasoAnexoRow;
+        Insert: Omit<CasoAnexoRow, 'id' | 'created_at'> &
+          Partial<Pick<CasoAnexoRow, 'id' | 'created_at'>>;
+        Update: Partial<CasoAnexoRow>;
         Relationships: [];
       };
     };

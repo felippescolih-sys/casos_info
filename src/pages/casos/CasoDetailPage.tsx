@@ -13,6 +13,7 @@ import {
   transferirCaso,
 } from '@/lib/queries/casos';
 import { boolLabel, formatDateTime } from '@/lib/format';
+import { AnexosUploader } from './AnexosUploader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
@@ -411,6 +412,12 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
         <Cell label="Ajudante">
           <V>{c.ajudante_nome}</V>
         </Cell>
+        <Cell label="Morbidade">
+          <V>{c.morbidade}</V>
+        </Cell>
+        <Cell label="Especialidade">
+          <V>{c.especialidade}</V>
+        </Cell>
         <Cell label="Tags">
           <V>{c.tags.join(', ') || null}</V>
         </Cell>
@@ -422,13 +429,40 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
           </V>
         </Cell>
       </Row>
+
+      {c.contatos_paciente.length > 0 && (
+        <BlockCell label="Contatos do paciente">
+          <ul className="space-y-0.5">
+            {c.contatos_paciente.map((ct, i) => (
+              <li key={i}>
+                <V>
+                  {[ct.nome, [ct.ddi, ct.ddd].filter(Boolean).join(' '), ct.fone]
+                    .filter(Boolean)
+                    .join(' · ') || null}
+                </V>
+              </li>
+            ))}
+          </ul>
+        </BlockCell>
+      )}
+
+      <BlockCell label="Arquivos">
+        <AnexosUploader caso={c} />
+      </BlockCell>
+
+      {c.observacoes && (
+        <BlockCell label="Observações">
+          <V>{c.observacoes}</V>
+        </BlockCell>
+      )}
+
       {c.transferencia_historico && (
         <BlockCell label="Histórico de transferências (responsável)">
           <V>{c.transferencia_historico}</V>
         </BlockCell>
       )}
       {c.anexos_urls.length > 0 && (
-        <BlockCell label="Anexos">
+        <BlockCell label="Anexos importados do Bubble">
           <ul className="space-y-1">
             {c.anexos_urls.map((u, i) => (
               <li key={i}>

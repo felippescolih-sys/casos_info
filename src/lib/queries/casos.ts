@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import type { CasoInsert, CasoResumoRow, CasoRow, CasoStatus, CasoUpdate } from '@/types/database';
+import type {
+  CasoAnexoRow,
+  CasoInsert,
+  CasoResumoRow,
+  CasoRow,
+  CasoStatus,
+  CasoUpdate,
+} from '@/types/database';
 
 export const PAGE_SIZE = 30;
 
@@ -119,6 +126,58 @@ export const aceitarTransferencia = (casoId: string) => rpc('aceitar_transferenc
 export const recusarTransferencia = (casoId: string) => rpc('cancelar_transferencia', casoId);
 export const encerrarCaso = (casoId: string) => rpc('encerrar_caso', casoId);
 export const reabrirCaso = (casoId: string) => rpc('reabrir_caso', casoId);
+
+// ── anexos ───────────────────────────────────────────────────
+const BUCKET = 'casos';
+
+export async function listAnexos(casoId: string): Promise<CasoAnexoRow[]> {
+  const { data, error } = await supabase
+    .from('caso_anexos')
+    .select('*')
+    .eq('caso_id', casoId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function uploadAnexo(
+  casoId: string,
+  file: File,
+  membroId: string,
+): Promise<CasoAnexoRow> {
+  const safe = file.name.replace(/[^\w.-]+/g, '_');
+  const path = `${casoId}/${Date.now()}-${safe}`;
+  const up = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+  if (up.error) throw up.error;
+  const { data, error } = await supabase
+    .from('caso_anexos')
+    .insert({
+      caso_id: casoId,
+      storage_path: path,
+      nome: file.name,
+      tamanho: file.size,
+      mime: file.type || null,
+      enviado_por: membroId,
+    })
+    .select('*')
+    .single();
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw error;
+  }
+  return data;
+}
+
+export async function deleteAnexo(anexo: CasoAnexoRow): Promise<void> {
+  const { error } = await supabase.from('caso_anexos').delete().eq('id', anexo.id);
+  if (error) throw error;
+  await supabase.storage.from(BUCKET).remove([anexo.storage_path]);
+}
+
+export async function anexoUrl(path: string): Promise<string | null> {
+  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
 
 export interface MembroOpcao {
   id: string;

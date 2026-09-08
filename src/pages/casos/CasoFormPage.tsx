@@ -3,13 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/auth/AuthProvider';
-import {
-  atualizarCaso,
-  criarCaso,
-  getCasoCompleto,
-  listMembrosParaSelecao,
-} from '@/lib/queries/casos';
+import { atualizarCaso, criarCaso, getCasoCompleto } from '@/lib/queries/casos';
 import { listCongregacoes } from '@/lib/queries/congregacoes';
+import { AnexosUploader } from './AnexosUploader';
 import { Combobox } from '@/components/ui/Combobox';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
@@ -26,12 +22,12 @@ import {
   SheetTitle,
   ValoresReferencia,
 } from './hlc7-ui';
-import type { CasoRow, ExameEntry } from '@/types/database';
+import type { CasoRow, ContatoPaciente, ExameEntry } from '@/types/database';
 
 // ── valores do formulário (flat, nomes = colunas) ────────────
-type FV = Record<string, string | boolean | ExameEntry[]> & {
-  responsavel_id: string;
+type FV = Record<string, string | boolean | ExameEntry[] | ContatoPaciente[]> & {
   exames: ExameEntry[];
+  contatos_paciente: ContatoPaciente[];
 };
 
 const TEXT_FIELDS = [
@@ -44,7 +40,7 @@ const TEXT_FIELDS = [
   'outro_medico_especialidade', 'plano_tratamento', 'estrategia', 'artigos_medicos',
   'medico_consultor_nome', 'medico_consultor_contato', 'medico_consultor_especialidade',
   'medico_consultor_outras', 'transf_hospital_destino', 'transf_medico_destino',
-  'transf_telefone_destino', 'outras_infos', 'resumo', 'tags',
+  'transf_telefone_destino', 'outras_infos', 'resumo', 'observacoes', 'tags',
 ] as const;
 
 const BOOL_FIELDS = [
@@ -54,8 +50,8 @@ const BOOL_FIELDS = [
   'transpac', 'transfundido', 'gvp',
 ] as const;
 
-function defaults(c: CasoRow | null | undefined, meId?: string): FV {
-  const v: FV = { responsavel_id: c?.responsavel_id ?? meId ?? '', exames: [{}, {}, {}] };
+function defaults(c: CasoRow | null | undefined): FV {
+  const v: FV = { exames: [{}, {}, {}], contatos_paciente: c?.contatos_paciente ?? [] };
   for (const f of TEXT_FIELDS) {
     v[f] = f === 'tags' ? (c?.tags ?? []).join(', ') : ((c?.[f as keyof CasoRow] as string) ?? '');
   }
@@ -78,6 +74,14 @@ function toPayload(v: FV) {
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean);
+  out.contatos_paciente = (v.contatos_paciente as ContatoPaciente[])
+    .map((c) => ({
+      nome: c.nome?.trim() || undefined,
+      ddi: c.ddi?.trim() || undefined,
+      ddd: c.ddd?.trim() || undefined,
+      fone: c.fone?.trim() || undefined,
+    }))
+    .filter((c) => Object.values(c).some(Boolean));
   out.exames = (v.exames as ExameEntry[])
     .map((e) => ({
       data: e.data?.trim() || undefined,
@@ -101,11 +105,6 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
     queryFn: () => getCasoCompleto(id),
     enabled: mode === 'editar' && !!id,
   });
-  const membrosQ = useQuery({
-    queryKey: ['membros-selecao'],
-    queryFn: listMembrosParaSelecao,
-    enabled: mode === 'novo',
-  });
   const congsQ = useQuery({
     queryKey: ['congregacoes'],
     queryFn: listCongregacoes,
@@ -113,26 +112,24 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
   });
 
   const { register, handleSubmit, reset, watch, setValue, formState } = useForm<FV>({
-    defaultValues: defaults(null, membro?.id),
+    defaultValues: defaults(null),
   });
 
   useEffect(() => {
-    if (mode === 'editar' && casoQ.data) reset(defaults(casoQ.data, membro?.id));
-  }, [mode, casoQ.data, membro?.id, reset]);
+    if (mode === 'editar' && casoQ.data) reset(defaults(casoQ.data));
+  }, [mode, casoQ.data, reset]);
 
   const mutation = useMutation({
     mutationFn: async (v: FV) => {
       const payload = toPayload(v);
       if (mode === 'novo') {
-        const respNome =
-          membrosQ.data?.find((m) => m.id === v.responsavel_id)?.nome ?? membro!.nome;
         return criarCaso({
           ...payload,
           bubble_raw: {},
           status: 'aberto',
           criado_por_id: membro!.id,
-          responsavel_id: v.responsavel_id || membro!.id,
-          responsavel_nome: respNome,
+          responsavel_id: membro!.id,
+          responsavel_nome: membro!.nome,
         });
       }
       return atualizarCaso(id, payload);
@@ -162,6 +159,15 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
 
   const t = (name: (typeof TEXT_FIELDS)[number]) => register(name);
   const b = (name: (typeof BOOL_FIELDS)[number]) => register(name);
+  const ctl = (name: (typeof TEXT_FIELDS)[number]) => ({
+    value: String(watch(name) ?? ''),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setValue(name, e.target.value, { shouldDirty: true }),
+  });
+
+  const contatos = (watch('contatos_paciente') as ContatoPaciente[]) ?? [];
+  const setContatos = (next: ContatoPaciente[]) =>
+    setValue('contatos_paciente', next, { shouldDirty: true });
 
   return (
     <form
@@ -328,10 +334,10 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         {/* INFORMAÇÕES MÉDICAS */}
         <Band tone="green">Informações médicas sobre o caso</Band>
         <BlockCell
-          label="Problema específico"
+          label="Problema específico (morbidade)"
           hint="Qual é o diagnóstico médico? Por que a questão do sangue está envolvida (sangramento, bebê prematuro, anemia)?"
         >
-          <FTextarea rows={3} {...t('morbidade')} />
+          <FTextarea rows={3} {...ctl('morbidade')} />
         </BlockCell>
         <BlockCell
           label="Histórico de saúde ligado ao problema"
@@ -372,7 +378,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             <FInput {...t('medico_responsavel')} />
           </Cell>
           <Cell label="Especialidade">
-            <FInput {...t('especialidade')} />
+            <FInput {...ctl('especialidade')} />
           </Cell>
         </Row>
         <Row cols={2}>
@@ -496,30 +502,91 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
 
         {/* dados internos do app */}
         <Band tone="green">Controle interno (Casos Info)</Band>
-        {mode === 'novo' && (
-          <Row cols={1}>
-            <Cell label="Membro responsável">
-              <FSelect {...register('responsavel_id')}>
-                <option value={membro!.id}>{membro!.nome} (eu)</option>
-                {(membrosQ.data ?? [])
-                  .filter((m) => m.id !== membro!.id)
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome}
-                    </option>
-                  ))}
-              </FSelect>
-            </Cell>
-          </Row>
-        )}
-        <Row cols={2}>
-          <Cell label="Cidade">
-            <FInput {...t('cidade')} />
-          </Cell>
-          <Cell label="UF">
-            <FInput {...t('uf')} maxLength={2} />
+        <Row cols={1}>
+          <Cell label="Responsável">
+            <span className="text-sm text-gray-700">
+              {membro!.nome} — você é o responsável ao criar o caso. Para trocar, use “Transferir”.
+            </span>
           </Cell>
         </Row>
+        <Row cols={2}>
+          <Cell label="Morbidade">
+            <FInput {...ctl('morbidade')} placeholder="ex.: anemia, sangramento pós-parto" />
+          </Cell>
+          <Cell label="Especialidade">
+            <FInput {...ctl('especialidade')} />
+          </Cell>
+        </Row>
+
+        <BlockCell label="Contatos do paciente">
+          <div className="space-y-2">
+            {contatos.length === 0 && (
+              <p className="text-sm text-gray-400">Nenhum contato.</p>
+            )}
+            {contatos.map((c, i) => (
+              <div key={i} className="grid gap-2 sm:grid-cols-[1fr_4rem_5rem_1fr_auto]">
+                <FInput
+                  placeholder="Nome"
+                  value={c.nome ?? ''}
+                  onChange={(e) =>
+                    setContatos(contatos.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)))
+                  }
+                />
+                <FInput
+                  placeholder="DDI"
+                  value={c.ddi ?? ''}
+                  onChange={(e) =>
+                    setContatos(contatos.map((x, j) => (j === i ? { ...x, ddi: e.target.value } : x)))
+                  }
+                />
+                <FInput
+                  placeholder="DDD"
+                  value={c.ddd ?? ''}
+                  onChange={(e) =>
+                    setContatos(contatos.map((x, j) => (j === i ? { ...x, ddd: e.target.value } : x)))
+                  }
+                />
+                <FInput
+                  placeholder="Telefone"
+                  value={c.fone ?? ''}
+                  onChange={(e) =>
+                    setContatos(contatos.map((x, j) => (j === i ? { ...x, fone: e.target.value } : x)))
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setContatos(contatos.filter((_, j) => j !== i))}
+                  className="px-2 text-sm text-red-600 hover:underline"
+                >
+                  remover
+                </button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setContatos([...contatos, {}])}
+            >
+              Adicionar contato
+            </Button>
+          </div>
+        </BlockCell>
+
+        <BlockCell label="Arquivos">
+          {mode === 'editar' && casoQ.data ? (
+            <AnexosUploader caso={casoQ.data} />
+          ) : (
+            <p className="text-sm text-gray-400">
+              Os arquivos podem ser anexados depois de criar o caso.
+            </p>
+          )}
+        </BlockCell>
+
+        <BlockCell label="Observações">
+          <FTextarea rows={4} {...t('observacoes')} />
+        </BlockCell>
+
         <Row cols={1}>
           <Cell label="Tags (separadas por vírgula)">
             <FInput {...t('tags')} placeholder="ONCO-HEMATO, PLANO" />
