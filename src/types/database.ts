@@ -64,6 +64,14 @@ export type MembroFuncaoUpdate = Partial<MembroFuncaoRow>;
 // ── Casos ────────────────────────────────────────────────────
 export type CasoStatus = 'aberto' | 'encerrado';
 
+export type AreaEspecialidade =
+  | 'plantao'
+  | 'ad_hepato_uro'
+  | 'onco_hemato'
+  | 'orto_neuro'
+  | 'cardio_torax'
+  | 'geoneo';
+
 export type ExameEntry = {
   data?: string;
   hb?: string;
@@ -146,6 +154,7 @@ export type CasoRow = {
   anciaos_contatados: string | null;
   anciaos_cont_tel: string | null;
 
+  area_especialidade: AreaEspecialidade | null;
   medico_responsavel: string | null;
   especialidade: string | null;
   outro_medico: string | null;
@@ -228,6 +237,7 @@ export type CasoResumoRow = Pick<
   | 'tags'
   | 'em_transferencia'
   | 'transferencia_pendente_para'
+  | 'area_especialidade'
 >;
 
 export type Database = {
@@ -288,6 +298,7 @@ export type Database = {
       area: Area;
       funcao_nivel: FuncaoNivel;
       caso_status: CasoStatus;
+      area_especialidade: AreaEspecialidade;
     };
     CompositeTypes: Record<string, never>;
   };

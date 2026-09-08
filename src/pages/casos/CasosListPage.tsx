@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
 import { listCasos, PAGE_SIZE, type CasosFilter } from '@/lib/queries/casos';
 import { formatDate } from '@/lib/format';
+import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { Card } from '@/components/ui/Card';
 import { Input, Select } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
@@ -16,6 +17,7 @@ export function CasosListPage() {
   const [filter, setFilter] = useState<CasosFilter>({
     status: 'aberto',
     responsavel: 'todos',
+    areaEspecialidade: 'todas',
     search: '',
   });
   const [page, setPage] = useState(0);
@@ -60,7 +62,7 @@ export function CasosListPage() {
         Só transferências pendentes para mim
       </label>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_9rem_10rem]">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_9rem_11rem_11rem]">
         <Input
           placeholder="Buscar por paciente, código, hospital ou congregação"
           value={filter.search ?? ''}
@@ -80,6 +82,19 @@ export function CasosListPage() {
         >
           <option value="todos">Todos os responsáveis</option>
           <option value="meus">Meus casos</option>
+        </Select>
+        <Select
+          value={filter.areaEspecialidade}
+          onChange={(e) =>
+            patch({ areaEspecialidade: e.target.value as CasosFilter['areaEspecialidade'] })
+          }
+        >
+          <option value="todas">Todas as especialidades</option>
+          {AREAS_ESPECIALIDADE.map((a) => (
+            <option key={a} value={a}>
+              {areaEspecialidadeLabel[a]}
+            </option>
+          ))}
         </Select>
       </div>
 

@@ -13,6 +13,7 @@ import {
   transferirCaso,
 } from '@/lib/queries/casos';
 import { boolLabel, formatDateTime } from '@/lib/format';
+import { areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
@@ -415,8 +416,8 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
         <Cell label="Morbidade">
           <V>{c.morbidade}</V>
         </Cell>
-        <Cell label="Especialidade">
-          <V>{c.especialidade}</V>
+        <Cell label="Especialidade (grupo do caso)">
+          <V>{c.area_especialidade ? areaEspecialidadeLabel[c.area_especialidade] : null}</V>
         </Cell>
         <Cell label="Tags">
           <V>{c.tags.join(', ') || null}</V>

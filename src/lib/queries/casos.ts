@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type {
+  AreaEspecialidade,
   CasoAnexoRow,
   CasoInsert,
   CasoResumoRow,
@@ -14,6 +15,7 @@ export interface CasosFilter {
   status?: CasoStatus | 'todos';
   /** 'meus' = responsável ou ajudante sou eu · 'todos' · ou um id de membro específico */
   responsavel?: 'meus' | 'todos' | string;
+  areaEspecialidade?: AreaEspecialidade | 'todas';
   /** só casos com transferência pendente para o usuário atual */
   pendentesParaMim?: boolean;
   search?: string;
@@ -37,6 +39,9 @@ export async function listCasos(
     .order('aberto_em', { ascending: false, nullsFirst: false });
 
   if (filter.status && filter.status !== 'todos') q = q.eq('status', filter.status);
+  if (filter.areaEspecialidade && filter.areaEspecialidade !== 'todas') {
+    q = q.eq('area_especialidade', filter.areaEspecialidade);
+  }
 
   if (filter.responsavel === 'meus') {
     q = q.or(`responsavel_id.eq.${currentUserId},ajudante_id.eq.${currentUserId}`);

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '@/auth/AuthProvider';
 import { atualizarCaso, criarCaso, getCasoCompleto } from '@/lib/queries/casos';
 import { listCongregacoes } from '@/lib/queries/congregacoes';
+import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Combobox } from '@/components/ui/Combobox';
 import { Button } from '@/components/ui/Button';
@@ -36,7 +37,7 @@ const TEXT_FIELDS = [
   'comentario_familia', 'hospital_nome', 'num_quarto', 'tele_hospital', 'tipo_atendimento',
   'plano_nome', 'congregacao', 'cidade', 'uf', 'anciaos_contatados', 'anciaos_cont_tel',
   'rn_peso', 'rn_idade_gestacional', 'rn_data_nascimento', 'rn_apgar_nascimento', 'rn_apgar_5min',
-  'morbidade', 'info_medica', 'medico_responsavel', 'especialidade', 'outro_medico',
+  'morbidade', 'area_especialidade', 'info_medica', 'medico_responsavel', 'especialidade', 'outro_medico',
   'outro_medico_especialidade', 'plano_tratamento', 'estrategia', 'artigos_medicos',
   'medico_consultor_nome', 'medico_consultor_contato', 'medico_consultor_especialidade',
   'medico_consultor_outras', 'transf_hospital_destino', 'transf_medico_destino',
@@ -378,7 +379,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             <FInput {...t('medico_responsavel')} />
           </Cell>
           <Cell label="Especialidade">
-            <FInput {...ctl('especialidade')} />
+            <FInput {...t('especialidade')} />
           </Cell>
         </Row>
         <Row cols={2}>
@@ -513,8 +514,15 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
           <Cell label="Morbidade">
             <FInput {...ctl('morbidade')} placeholder="ex.: anemia, sangramento pós-parto" />
           </Cell>
-          <Cell label="Especialidade">
-            <FInput {...ctl('especialidade')} />
+          <Cell label="Especialidade (grupo do caso)">
+            <FSelect {...t('area_especialidade')}>
+              <option value="">—</option>
+              {AREAS_ESPECIALIDADE.map((a) => (
+                <option key={a} value={a}>
+                  {areaEspecialidadeLabel[a]}
+                </option>
+              ))}
+            </FSelect>
           </Cell>
         </Row>
 
