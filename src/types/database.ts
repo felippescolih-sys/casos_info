@@ -68,6 +68,7 @@ export type AreaEspecialidade =
   | 'plantao'
   | 'ad_hepato_uro'
   | 'onco_hemato'
+  | 'tmo'
   | 'orto_neuro'
   | 'cardio_torax'
   | 'geoneo';
