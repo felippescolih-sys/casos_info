@@ -199,21 +199,12 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
         <Cell label="Idade">
           <V>{c.idade}</V>
         </Cell>
-        <Cell label="Nome do pai">
-          <V>{c.nome_pai}</V> · Batizado? <V>{sim(c.pai_batizado)}</V>
-        </Cell>
-        <Cell label="Nome da mãe">
-          <V>{c.nome_mae}</V> · Batizada? <V>{sim(c.mae_batizada)}</V>
-        </Cell>
       </Row>
       <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-700">
         <span>Paciente batizado? <V>{sim(c.batizado)}</V></span>
         <span>Boa condição espiritual? <V>{sim(c.boa_condicao_espiritual)}</V></span>
         <span>Cartão Diretivas completo? <V>{sim(c.cartao_diretivas_ok)}</V></span>
       </div>
-      <BlockCell label="Comentários (condição espiritual da família)">
-        <V>{c.comentario_familia}</V>
-      </BlockCell>
       <Row cols={1}>
         <Cell label="Nome do hospital">
           <V>{c.hospital_nome}</V>
@@ -250,32 +241,40 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
         </Cell>
       </Row>
 
-      {(c.rn_peso ||
-        c.rn_idade_gestacional ||
-        c.rn_data_nascimento ||
-        c.rn_apgar_nascimento ||
-        c.rn_apgar_5min) && (
-        <>
-          <Band tone="green">Recém-nascidos</Band>
-          <Row cols={3}>
-            <Cell label="Peso ao nascer">
-              <V>{c.rn_peso}</V>
-            </Cell>
-            <Cell label="Idade gestacional (semanas)">
-              <V>{c.rn_idade_gestacional}</V>
-            </Cell>
-            <Cell label="Data de nascimento">
-              <V>{c.rn_data_nascimento}</V>
-            </Cell>
-            <Cell label="APGAR — nascimento">
-              <V>{c.rn_apgar_nascimento}</V>
-            </Cell>
-            <Cell label="APGAR — 5 min">
-              <V>{c.rn_apgar_5min}</V>
-            </Cell>
-          </Row>
-        </>
-      )}
+      <Band tone="green" hint="Se for menor de idade ou recém-nascido, preencha também esta seção">
+        Menor de idade / recém-nascido
+      </Band>
+      <Row cols={2}>
+        <Cell label="Nome do pai">
+          <V>{c.nome_pai}</V> · Batizado? <V>{sim(c.pai_batizado)}</V>
+        </Cell>
+        <Cell label="Nome da mãe">
+          <V>{c.nome_mae}</V> · Batizada? <V>{sim(c.mae_batizada)}</V>
+        </Cell>
+      </Row>
+      <BlockCell label="Comentários (condição espiritual da família)">
+        <V>{c.comentario_familia}</V>
+      </BlockCell>
+      <div className="border-b border-gray-300 px-3 pt-2 text-[11px] font-bold uppercase tracking-wide text-gray-500">
+        Recém-nascidos
+      </div>
+      <Row cols={3}>
+        <Cell label="Peso ao nascer">
+          <V>{c.rn_peso}</V>
+        </Cell>
+        <Cell label="Idade gestacional (semanas)">
+          <V>{c.rn_idade_gestacional}</V>
+        </Cell>
+        <Cell label="Data de nascimento">
+          <V>{c.rn_data_nascimento}</V>
+        </Cell>
+        <Cell label="APGAR — nascimento">
+          <V>{c.rn_apgar_nascimento}</V>
+        </Cell>
+        <Cell label="APGAR — 5 min">
+          <V>{c.rn_apgar_5min}</V>
+        </Cell>
+      </Row>
 
       <Band tone="green">Informações médicas sobre o caso</Band>
       <BlockCell label="Problema específico">

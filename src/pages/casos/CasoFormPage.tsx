@@ -228,20 +228,6 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             <FInput {...t('idade')} />
           </Cell>
         </Row>
-        <Row cols={2}>
-          <Cell label="Nome do pai">
-            <FInput {...t('nome_pai')} />
-            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-              <FCheck {...b('pai_batizado')} /> Batizado?
-            </label>
-          </Cell>
-          <Cell label="Nome da mãe">
-            <FInput {...t('nome_mae')} />
-            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-              <FCheck {...b('mae_batizada')} /> Batizada?
-            </label>
-          </Cell>
-        </Row>
         <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-gray-300 px-3 py-2 text-sm text-gray-800">
           <label className="flex items-center gap-2">
             <FCheck {...b('batizado')} /> Paciente batizado?
@@ -253,9 +239,6 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             <FCheck {...b('cartao_diretivas_ok')} /> Cartão Diretivas completo?
           </label>
         </div>
-        <BlockCell label="Comentários (condição espiritual da família, etc.)">
-          <FTextarea rows={2} {...t('comentario_familia')} />
-        </BlockCell>
         <Row cols={1}>
           <Cell label="Nome do hospital">
             <FInput {...t('hospital_nome')} />
@@ -299,7 +282,29 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
           </Cell>
         </Row>
 
-        <Band tone="green">Recém-nascidos</Band>
+        <Band tone="green" hint="Se for menor de idade ou recém-nascido, preencha também esta seção">
+          Menor de idade / recém-nascido
+        </Band>
+        <Row cols={2}>
+          <Cell label="Nome do pai">
+            <FInput {...t('nome_pai')} />
+            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+              <FCheck {...b('pai_batizado')} /> Batizado?
+            </label>
+          </Cell>
+          <Cell label="Nome da mãe">
+            <FInput {...t('nome_mae')} />
+            <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+              <FCheck {...b('mae_batizada')} /> Batizada?
+            </label>
+          </Cell>
+        </Row>
+        <BlockCell label="Comentários (condição espiritual da família, etc.)">
+          <FTextarea rows={2} {...t('comentario_familia')} />
+        </BlockCell>
+        <div className="border-b border-gray-300 px-3 pt-2 text-[11px] font-bold uppercase tracking-wide text-gray-500">
+          Recém-nascidos
+        </div>
         <Row cols={3}>
           <Cell label="Peso ao nascer">
             <FInput {...t('rn_peso')} />
