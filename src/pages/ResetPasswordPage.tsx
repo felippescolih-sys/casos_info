@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Field } from '@/components/ui/Field';
-import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 
@@ -65,10 +65,10 @@ export function ResetPasswordPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {erro && <Alert tone="error">{erro}</Alert>}
           <Field label="Nova senha" htmlFor="password" error={errors.password?.message}>
-            <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+            <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
           </Field>
           <Field label="Confirmar senha" htmlFor="confirm" error={errors.confirm?.message}>
-            <Input id="confirm" type="password" autoComplete="new-password" {...register('confirm')} />
+            <PasswordInput id="confirm" autoComplete="new-password" {...register('confirm')} />
           </Field>
           <Button type="submit" className="w-full" loading={isSubmitting}>
             Salvar senha

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 
@@ -91,7 +92,7 @@ export function SignupPage() {
           <Input id="email" type="email" autoComplete="email" {...register('email')} />
         </Field>
         <Field label="Senha" htmlFor="password" error={errors.password?.message} hint="Mínimo 8 caracteres">
-          <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+          <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
         </Field>
         <Field label="WhatsApp" htmlFor="tel_zap" error={errors.tel_zap?.message}>
           <Input id="tel_zap" inputMode="tel" placeholder="(11) 99999-9999" {...register('tel_zap')} />

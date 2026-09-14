@@ -8,6 +8,7 @@ import { updateMembro } from '@/lib/queries/membros';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { AvatarUploader } from './AvatarUploader';
@@ -228,18 +229,16 @@ function SenhaCard() {
           {msg && <Alert tone="success">{msg}</Alert>}
           {erro && <Alert tone="error">{erro}</Alert>}
           <Field label="Nova senha" htmlFor="acc-pwd">
-            <Input
+            <PasswordInput
               id="acc-pwd"
-              type="password"
               autoComplete="new-password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
             />
           </Field>
           <Field label="Confirmar senha" htmlFor="acc-pwd2">
-            <Input
+            <PasswordInput
               id="acc-pwd2"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
