@@ -17,7 +17,9 @@ export interface MembrosFilter {
   search?: string;
 }
 
-const SELECT_COM_FUNCOES = '*, funcoes:membro_funcoes(area, nivel)';
+// `membro_funcoes` tem 2 FKs pra `membros` (membro_id e criado_por) — precisa
+// desambiguar qual relação embutir, senão o PostgREST recusa a query.
+const SELECT_COM_FUNCOES = '*, funcoes:membro_funcoes!membro_id(area, nivel)';
 
 export async function listMembros(filter: MembrosFilter = {}): Promise<MembroComFuncoes[]> {
   let query = supabase
