@@ -13,6 +13,7 @@ export type MemberStatus = 'pendente' | 'ativo' | 'inativo';
 
 export type Area =
   | 'geral'
+  | 'colih'
   | 'apresentacoes'
   | 'gvps'
   | 'especialidades'

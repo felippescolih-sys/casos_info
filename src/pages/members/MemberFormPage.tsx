@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { definirFuncao, getMembro, updateMembro } from '@/lib/queries/membros';
 import { useAuth } from '@/auth/AuthProvider';
-import { AREAS, areaLabel } from '@/lib/labels';
+import { AREAS, funcaoAreaLabel } from '@/lib/labels';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input, Select } from '@/components/ui/Input';
@@ -158,6 +158,7 @@ export function MemberFormPage() {
       <FuncoesCard
         membroId={data.id}
         atual={data.funcoes}
+        especialidade={data.especialidade}
         podeEditar={isAdminGeral}
         criadoPor={eu!.id}
         onChanged={() => {
@@ -172,12 +173,14 @@ export function MemberFormPage() {
 function FuncoesCard({
   membroId,
   atual,
+  especialidade,
   podeEditar,
   criadoPor,
   onChanged,
 }: {
   membroId: string;
   atual: Array<{ area: Area; nivel: FuncaoNivel }>;
+  especialidade: string | null;
   podeEditar: boolean;
   criadoPor: string;
   onChanged: () => void;
@@ -220,7 +223,9 @@ function FuncoesCard({
         <div className="divide-y divide-gray-100">
           {AREAS.map((area) => (
             <div key={area} className="flex items-center justify-between gap-3 py-2.5">
-              <span className="text-sm text-gray-800">{areaLabel[area]}</span>
+              <span className="text-sm text-gray-800">
+                {funcaoAreaLabel(area, especialidade)}
+              </span>
               <Select
                 className="w-40"
                 value={nivelDe(area)}

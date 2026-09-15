@@ -2,6 +2,7 @@ import type { Area, AreaEspecialidade, FuncaoNivel, MemberStatus } from '@/types
 
 export const AREAS: Area[] = [
   'geral',
+  'colih',
   'apresentacoes',
   'gvps',
   'especialidades',
@@ -11,12 +12,20 @@ export const AREAS: Area[] = [
 
 export const areaLabel: Record<Area, string> = {
   geral: 'Administração geral',
+  colih: 'COLIH',
   apresentacoes: 'Apresentações',
   gvps: 'GVPs',
   especialidades: 'Especialidades',
   facilitadores: 'Facilitadores',
   medicos: 'Lista de médicos',
 };
+
+/** Rótulo de exibição de uma função: pra `especialidades`, mostra a especialidade
+ * do próprio membro em vez do nome genérico da área. */
+export function funcaoAreaLabel(area: Area, especialidade?: string | null): string {
+  if (area === 'especialidades' && especialidade) return especialidade;
+  return areaLabel[area];
+}
 
 export const nivelLabel: Record<FuncaoNivel, string> = {
   admin: 'Admin',

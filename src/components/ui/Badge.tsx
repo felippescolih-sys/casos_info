@@ -32,12 +32,20 @@ export function CasoStatusBadge({ status }: { status: CasoStatus }) {
   return <Base className={tone}>{status === 'aberto' ? 'Aberto' : 'Encerrado'}</Base>;
 }
 
-export function FuncaoBadge({ area, nivel }: { area: Area; nivel: FuncaoNivel }) {
+export function FuncaoBadge({
+  area,
+  nivel,
+  label,
+}: {
+  area: Area;
+  nivel: FuncaoNivel;
+  label?: string;
+}) {
   const tone =
     nivel === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
   return (
     <Base className={tone}>
-      {areaLabel[area]} · {nivelLabel[nivel]}
+      {label ?? areaLabel[area]} · {nivelLabel[nivel]}
     </Base>
   );
 }

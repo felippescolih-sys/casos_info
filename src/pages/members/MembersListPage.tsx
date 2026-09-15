@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listMembros, type MembrosFilter } from '@/lib/queries/membros';
-import { AREAS, areaLabel } from '@/lib/labels';
+import { AREAS, areaLabel, funcaoAreaLabel } from '@/lib/labels';
 import { Card } from '@/components/ui/Card';
 import { Input, Select } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
@@ -100,7 +100,12 @@ export function MembersListPage() {
                       <div className="flex flex-wrap gap-1">
                         {m.funcoes.length ? (
                           m.funcoes.map((f) => (
-                            <FuncaoBadge key={f.area} area={f.area} nivel={f.nivel} />
+                            <FuncaoBadge
+                              key={f.area}
+                              area={f.area}
+                              nivel={f.nivel}
+                              label={funcaoAreaLabel(f.area, m.especialidade)}
+                            />
                           ))
                         ) : (
                           <span className="text-gray-400">—</span>
