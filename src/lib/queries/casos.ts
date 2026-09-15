@@ -120,10 +120,15 @@ async function rpc(fn: 'aceitar_transferencia' | 'cancelar_transferencia' | 'enc
   if (error) throw error;
 }
 
-export const transferirCaso = async (casoId: string, novoMembroId: string) => {
+export const transferirCaso = async (
+  casoId: string,
+  novoMembroId: string,
+  areaEspecialidade?: AreaEspecialidade | null,
+) => {
   const { error } = await supabase.rpc('transferir_caso', {
     _caso_id: casoId,
     _novo: novoMembroId,
+    _area_especialidade: areaEspecialidade ?? null,
   });
   if (error) throw error;
 };
@@ -182,19 +187,4 @@ export async function deleteAnexo(anexo: CasoAnexoRow): Promise<void> {
 export async function anexoUrl(path: string): Promise<string | null> {
   const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
-}
-
-export interface MembroOpcao {
-  id: string;
-  nome: string;
-}
-
-export async function listMembrosParaSelecao(): Promise<MembroOpcao[]> {
-  const { data, error } = await supabase
-    .from('membros')
-    .select('id, nome')
-    .eq('status', 'ativo')
-    .order('nome');
-  if (error) throw error;
-  return data ?? [];
 }

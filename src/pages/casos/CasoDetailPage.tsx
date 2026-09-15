@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
@@ -7,19 +7,18 @@ import {
   encerrarCaso,
   getCasoCompleto,
   getCasoResumo,
-  listMembrosParaSelecao,
   reabrirCaso,
   recusarTransferencia,
   transferirCaso,
 } from '@/lib/queries/casos';
+import { getFilasEspecialidade, getPlantaoAtual } from '@/lib/queries/membros';
 import { boolLabel, formatDateTime } from '@/lib/format';
-import { areaEspecialidadeLabel } from '@/lib/labels';
+import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CasoStatusBadge } from '@/components/ui/Badge';
 import {
@@ -34,7 +33,7 @@ import {
   V,
   ValoresReferencia,
 } from './hlc7-ui';
-import type { CasoRow } from '@/types/database';
+import type { AreaEspecialidade, CasoRow } from '@/types/database';
 
 export function CasoDetailPage() {
   const { id = '' } = useParams();
@@ -632,45 +631,114 @@ function TransferDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [alvo, setAlvo] = useState('');
-  const { data: membros } = useQuery({
-    queryKey: ['membros-selecao'],
-    queryFn: listMembrosParaSelecao,
+  const qc = useQueryClient();
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviandoPara, setEnviandoPara] = useState<string | null>(null);
+
+  const { data: plantao } = useQuery({
+    queryKey: ['plantao-atual'],
+    queryFn: getPlantaoAtual,
   });
-  const opcoes = useMemo(
-    () => (membros ?? []).filter((m) => !excluir.includes(m.id)),
-    [membros, excluir],
-  );
+  const { data: filas, isLoading } = useQuery({
+    queryKey: ['filas-especialidade', excluir],
+    queryFn: () => getFilasEspecialidade(excluir),
+  });
+
   const mut = useMutation({
-    mutationFn: () => transferirCaso(casoId, alvo),
+    mutationFn: ({ novo, area }: { novo: string; area: AreaEspecialidade }) =>
+      transferirCaso(casoId, novo, area),
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['filas-especialidade'] });
+      void qc.invalidateQueries({ queryKey: ['plantao-atual'] });
       onDone();
       onClose();
     },
+    onError: (e) => setErro((e as Error).message),
+    onSettled: () => setEnviandoPara(null),
   });
 
+  function escolher(novo: string, area: AreaEspecialidade) {
+    setErro(null);
+    setEnviandoPara(novo);
+    mut.mutate({ novo, area });
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const areasComFila = AREAS_ESPECIALIDADE.filter(
+    (area) => area !== 'plantao' && filas?.[area]?.length,
+  );
+
   return (
-    <ConfirmDialog
-      open
-      title="Transferir caso"
-      confirmLabel="Transferir"
-      loading={mut.isPending}
-      onConfirm={() => alvo && mut.mutate()}
-      onCancel={onClose}
-    >
-      <div className="space-y-2">
-        <p>O novo responsável precisa aceitar a transferência para assumir o caso.</p>
-        <Select value={alvo} onChange={(e) => setAlvo(e.target.value)}>
-          <option value="">Escolha o membro…</option>
-          {opcoes.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nome}
-            </option>
-          ))}
-        </Select>
-        {mut.error && <Alert tone="error">{(mut.error as Error).message}</Alert>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-label="Fechar" className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-lg bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <h2 className="text-lg font-semibold text-gray-900">Transferência</h2>
+          <button
+            aria-label="Fechar"
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto p-5">
+          <p className="mb-4 text-sm text-gray-500">
+            O novo responsável precisa aceitar a transferência para assumir o caso.
+          </p>
+          {erro && (
+            <div className="mb-3">
+              <Alert tone="error">{erro}</Alert>
+            </div>
+          )}
+          {plantao && (
+            <div className="mb-5 text-center">
+              <p className="mb-1 text-sm font-medium text-gray-600">Hoje no plantão:</p>
+              <div className="rounded-md bg-green-800 px-3 py-2 text-sm font-medium text-white">
+                {plantao.nome}
+              </div>
+            </div>
+          )}
+          {isLoading ? (
+            <div className="flex justify-center py-8 text-gray-400">
+              <Spinner className="size-6" />
+            </div>
+          ) : !areasComFila.length ? (
+            <p className="text-center text-sm text-gray-500">
+              Nenhum membro disponível pra transferência.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {areasComFila.map((area) => (
+                <div key={area}>
+                  <h3 className="mb-2 text-center text-sm font-semibold text-gray-700">
+                    {areaEspecialidadeLabel[area]}
+                  </h3>
+                  <div className="space-y-2">
+                    {filas![area]!.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        disabled={mut.isPending}
+                        onClick={() => escolher(m.id, area)}
+                        className="flex w-full items-center justify-center rounded-md bg-slate-500 px-3 py-2.5 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-60"
+                      >
+                        {enviandoPara === m.id ? 'Enviando…' : m.nome}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </ConfirmDialog>
+    </div>
   );
 }
 

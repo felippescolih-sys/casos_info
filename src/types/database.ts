@@ -66,10 +66,12 @@ export type MembroFuncaoUpdate = Partial<MembroFuncaoRow>;
 export type MembroEspecialidadeRow = {
   membro_id: string;
   area_especialidade: AreaEspecialidade;
+  /** Posição na fila de transferência daquela especialidade (menor = mais na frente). */
+  ordem: number;
   created_at: string;
 };
-export type MembroEspecialidadeInsert = Omit<MembroEspecialidadeRow, 'created_at'> &
-  Partial<Pick<MembroEspecialidadeRow, 'created_at'>>;
+export type MembroEspecialidadeInsert = Omit<MembroEspecialidadeRow, 'created_at' | 'ordem'> &
+  Partial<Pick<MembroEspecialidadeRow, 'created_at' | 'ordem'>>;
 
 // ── Casos ────────────────────────────────────────────────────
 export type CasoStatus = 'aberto' | 'encerrado';
@@ -304,7 +306,10 @@ export type Database = {
       gerencia_membros: { Args: Record<string, never>; Returns: boolean };
       is_ativo: { Args: Record<string, never>; Returns: boolean };
       pode_operar_caso: { Args: { _caso_id: string }; Returns: boolean };
-      transferir_caso: { Args: { _caso_id: string; _novo: string }; Returns: undefined };
+      transferir_caso: {
+        Args: { _caso_id: string; _novo: string; _area_especialidade?: AreaEspecialidade | null };
+        Returns: undefined;
+      };
       aceitar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
       cancelar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
       encerrar_caso: { Args: { _caso_id: string }; Returns: undefined };

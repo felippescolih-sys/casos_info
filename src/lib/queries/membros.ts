@@ -102,6 +102,53 @@ export async function definirFuncao(
   if (error) throw error;
 }
 
+export interface FilaMembro {
+  id: string;
+  nome: string;
+}
+
+type MembroEspecialidadeComMembro = {
+  area_especialidade: AreaEspecialidade;
+  ordem: number;
+  membro: { id: string; nome: string; status: string };
+};
+
+/** Quem está na frente da fila de "plantão" hoje (só informativo, não é alvo de transferência). */
+export async function getPlantaoAtual(): Promise<FilaMembro | null> {
+  const { data, error } = await supabase
+    .from('membro_especialidades')
+    .select('ordem, membro:membros!inner(id, nome, status)')
+    .eq('area_especialidade', 'plantao')
+    .eq('membro.status', 'ativo')
+    .order('ordem', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const m = (data as unknown as MembroEspecialidadeComMembro).membro;
+  return { id: m.id, nome: m.nome };
+}
+
+/** Fila de transferência de cada especialidade clínica (exclui "plantão"), em ordem. */
+export async function getFilasEspecialidade(
+  excluirIds: string[] = [],
+): Promise<Partial<Record<AreaEspecialidade, FilaMembro[]>>> {
+  const { data, error } = await supabase
+    .from('membro_especialidades')
+    .select('area_especialidade, ordem, membro:membros!inner(id, nome, status)')
+    .neq('area_especialidade', 'plantao')
+    .eq('membro.status', 'ativo')
+    .order('ordem', { ascending: true });
+  if (error) throw error;
+
+  const porArea: Partial<Record<AreaEspecialidade, FilaMembro[]>> = {};
+  for (const row of (data ?? []) as unknown as MembroEspecialidadeComMembro[]) {
+    if (excluirIds.includes(row.membro.id)) continue;
+    (porArea[row.area_especialidade] ??= []).push({ id: row.membro.id, nome: row.membro.nome });
+  }
+  return porArea;
+}
+
 /** Liga/desliga uma especialidade clínica do membro. Um membro pode ter várias ao mesmo tempo. */
 export async function definirEspecialidade(
   membroId: string,
