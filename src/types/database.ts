@@ -347,6 +347,10 @@ export type Database = {
         Args: { _meses?: number };
         Returns: { area: AreaEspecialidade; total: number }[];
       };
+      casos_por_hospital: {
+        Args: Record<string, never>;
+        Returns: { hospital: string; abertos: number; encerrados: number; total: number }[];
+      };
     };
     Enums: {
       member_status: MemberStatus;

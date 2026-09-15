@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
@@ -5,6 +6,7 @@ import { getEscalaAtual } from '@/lib/queries/escalas';
 import {
   getCasosEmTransferencia,
   getCasosPorEspecialidade,
+  getCasosPorHospital,
   getCasosStats,
   getUltimosCasos,
 } from '@/lib/queries/dashboard';
@@ -50,6 +52,8 @@ export function DashboardPage() {
       </div>
 
       <TransferenciasCard />
+
+      <HospitaisCard />
     </div>
   );
 }
@@ -232,6 +236,73 @@ function TransferenciasCard() {
           </table>
         </div>
       )}
+    </Card>
+  );
+}
+
+const HOSPITAIS_VISIVEIS_INICIAL = 6;
+
+function HospitaisCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['casos-por-hospital'],
+    queryFn: getCasosPorHospital,
+  });
+  const [expandido, setExpandido] = useState(false);
+
+  const lista = data ?? [];
+  const visiveis = expandido ? lista : lista.slice(0, HOSPITAIS_VISIVEIS_INICIAL);
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Número de casos por hospital</h2>
+      </CardHeader>
+      <CardBody>
+        {isLoading ? (
+          <div className="flex justify-center py-6 text-gray-400">
+            <Spinner className="size-6" />
+          </div>
+        ) : !lista.length ? (
+          <p className="text-sm text-gray-500">Nenhum caso com hospital informado.</p>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visiveis.map((h) => (
+                <div key={h.hospital} className="rounded-md border border-gray-200 p-4">
+                  <p className="mb-2 truncate text-sm font-semibold text-gray-900" title={h.hospital}>
+                    {h.hospital}
+                  </p>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Abertos</dt>
+                      <dd className="font-medium text-gray-900">{h.abertos}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Encerrados</dt>
+                      <dd className="font-medium text-gray-900">{h.encerrados}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Total</dt>
+                      <dd className="font-medium text-gray-900">{h.total}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ))}
+            </div>
+            {lista.length > HOSPITAIS_VISIVEIS_INICIAL && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setExpandido((v) => !v)}
+                  className="text-sm font-medium text-brand-700 hover:underline"
+                >
+                  {expandido ? 'Mostrar menos' : `Mostrar mais (${lista.length - HOSPITAIS_VISIVEIS_INICIAL})`}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </CardBody>
     </Card>
   );
 }

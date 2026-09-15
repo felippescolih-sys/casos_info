@@ -57,6 +57,19 @@ export async function getUltimosCasos(limite = 8): Promise<CasoResumoRow[]> {
   return data ?? [];
 }
 
+export interface HospitalContagem {
+  hospital: string;
+  abertos: number;
+  encerrados: number;
+  total: number;
+}
+
+export async function getCasosPorHospital(): Promise<HospitalContagem[]> {
+  const { data, error } = await supabase.rpc('casos_por_hospital');
+  if (error) throw error;
+  return data ?? [];
+}
+
 export interface CasoEmTransferencia extends CasoResumoRow {
   transferencia_pendente_para_nome: string | null;
 }
