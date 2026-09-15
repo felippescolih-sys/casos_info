@@ -19,6 +19,22 @@ export interface MembrosFilter {
   search?: string;
 }
 
+export interface MembroOpcao {
+  id: string;
+  nome: string;
+}
+
+/** Lista simples de membros ativos, pra dropdowns de seleção (escala, transferência…). */
+export async function listMembrosAtivos(): Promise<MembroOpcao[]> {
+  const { data, error } = await supabase
+    .from('membros')
+    .select('id, nome')
+    .eq('status', 'ativo')
+    .order('nome');
+  if (error) throw error;
+  return data ?? [];
+}
+
 // `membro_funcoes` tem 2 FKs pra `membros` (membro_id e criado_por) — precisa
 // desambiguar qual relação embutir, senão o PostgREST recusa a query.
 const SELECT_COM_FUNCOES =

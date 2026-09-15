@@ -73,6 +73,28 @@ export type MembroEspecialidadeRow = {
 export type MembroEspecialidadeInsert = Omit<MembroEspecialidadeRow, 'created_at' | 'ordem'> &
   Partial<Pick<MembroEspecialidadeRow, 'created_at' | 'ordem'>>;
 
+/** Escala de plantão/triagem: quem está designado num período (início/fim).
+ * "Ajudante" só se aplica a `tipo = 'plantao'`. */
+export type EscalaTipo = 'plantao' | 'triagem';
+
+export type EscalaRow = {
+  id: string;
+  tipo: EscalaTipo;
+  membro_id: string;
+  ajudante_id: string | null;
+  inicio: string;
+  fim: string;
+  criado_por: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type EscalaInsert = Omit<
+  EscalaRow,
+  'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id'
+> &
+  Partial<Pick<EscalaRow, 'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id'>>;
+export type EscalaUpdate = Partial<Omit<EscalaRow, 'id' | 'created_at'>>;
+
 // ── Casos ────────────────────────────────────────────────────
 export type CasoStatus = 'aberto' | 'encerrado';
 
@@ -250,7 +272,12 @@ export type CasoResumoRow = Pick<
   | 'tags'
   | 'em_transferencia'
   | 'transferencia_pendente_para'
+  | 'transferencia_pendente_em'
   | 'area_especialidade'
+  | 'morbidade'
+  | 'transpac'
+  | 'transfundido'
+  | 'created_at'
 >;
 
 export type Database = {
@@ -272,6 +299,12 @@ export type Database = {
         Row: MembroEspecialidadeRow;
         Insert: MembroEspecialidadeInsert;
         Update: Partial<MembroEspecialidadeRow>;
+        Relationships: [];
+      };
+      escalas: {
+        Row: EscalaRow;
+        Insert: EscalaInsert;
+        Update: EscalaUpdate;
         Relationships: [];
       };
       casos: {
@@ -314,6 +347,10 @@ export type Database = {
       cancelar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
       encerrar_caso: { Args: { _caso_id: string }; Returns: undefined };
       reabrir_caso: { Args: { _caso_id: string }; Returns: undefined };
+      casos_por_especialidade: {
+        Args: { _meses?: number };
+        Returns: { area: AreaEspecialidade; total: number }[];
+      };
     };
     Enums: {
       member_status: MemberStatus;
@@ -321,6 +358,7 @@ export type Database = {
       funcao_nivel: FuncaoNivel;
       caso_status: CasoStatus;
       area_especialidade: AreaEspecialidade;
+      escala_tipo: EscalaTipo;
     };
     CompositeTypes: Record<string, never>;
   };
