@@ -10,7 +10,13 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import type { Area, FuncaoNivel, MembroFuncaoRow, MembroRow } from '@/types/database';
+import type {
+  Area,
+  AreaEspecialidade,
+  FuncaoNivel,
+  MembroFuncaoRow,
+  MembroRow,
+} from '@/types/database';
 
 export interface Permissions {
   funcoes: MembroFuncaoRow[];
@@ -25,6 +31,8 @@ interface AuthContextValue extends Permissions {
   session: Session | null | undefined;
   /** Linha em `membros` do usuário logado. `null` se ainda não existe / sem sessão. */
   membro: MembroRow | null;
+  /** Especialidades clínicas do membro logado (pode ter mais de uma). */
+  especialidades: AreaEspecialidade[];
   /** true enquanto busca o perfil pela primeira vez. */
   loadingMembro: boolean;
   refreshMembro: () => Promise<void>;
@@ -37,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [membro, setMembro] = useState<MembroRow | null>(null);
   const [funcoes, setFuncoes] = useState<MembroFuncaoRow[]>([]);
+  const [especialidades, setEspecialidades] = useState<AreaEspecialidade[]>([]);
   const [loadingMembro, setLoadingMembro] = useState(false);
   const currentUserId = useRef<string | null>(null);
 
@@ -44,17 +53,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setMembro(null);
       setFuncoes([]);
+      setEspecialidades([]);
       return;
     }
     setLoadingMembro(true);
-    const [{ data: m, error: mErr }, { data: f, error: fErr }] = await Promise.all([
-      supabase.from('membros').select('*').eq('id', userId).maybeSingle(),
-      supabase.from('membro_funcoes').select('*').eq('membro_id', userId),
-    ]);
+    const [{ data: m, error: mErr }, { data: f, error: fErr }, { data: e, error: eErr }] =
+      await Promise.all([
+        supabase.from('membros').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('membro_funcoes').select('*').eq('membro_id', userId),
+        supabase.from('membro_especialidades').select('area_especialidade').eq('membro_id', userId),
+      ]);
     if (mErr) console.error('Erro ao carregar membro:', mErr.message);
     if (fErr) console.error('Erro ao carregar funções:', fErr.message);
+    if (eErr) console.error('Erro ao carregar especialidades:', eErr.message);
     setMembro(mErr ? null : (m ?? null));
     setFuncoes(fErr ? [] : (f ?? []));
+    setEspecialidades(eErr ? [] : (e ?? []).map((row) => row.area_especialidade));
     setLoadingMembro(false);
   }, []);
 
@@ -86,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setMembro(null);
     setFuncoes([]);
+    setEspecialidades([]);
   }, []);
 
   const temFuncao = useCallback(
@@ -98,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       membro,
+      especialidades,
       loadingMembro,
       refreshMembro,
       signOut,
@@ -106,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdminGeral: temFuncao('geral', 'admin'),
       gerenciaMembros: temFuncao('geral'),
     }),
-    [session, membro, loadingMembro, refreshMembro, signOut, funcoes, temFuncao],
+    [session, membro, especialidades, loadingMembro, refreshMembro, signOut, funcoes, temFuncao],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,16 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { definirFuncao, getMembro, updateMembro } from '@/lib/queries/membros';
+import { definirEspecialidade, definirFuncao, getMembro, updateMembro } from '@/lib/queries/membros';
 import { useAuth } from '@/auth/AuthProvider';
 import { AREAS, funcaoAreaLabel } from '@/lib/labels';
+import { EspecialidadesCheckboxes } from '@/components/EspecialidadesCheckboxes';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
-import type { Area, FuncaoNivel, MemberStatus } from '@/types/database';
+import type { Area, AreaEspecialidade, FuncaoNivel, MemberStatus } from '@/types/database';
 
 const schema = z.object({
   nome: z.string().min(3, 'Informe o nome completo'),
@@ -22,7 +23,6 @@ const schema = z.object({
   tel_residencial: z.string().optional(),
   tel_comercial: z.string().optional(),
   congregacao: z.string().optional(),
-  especialidade: z.string().optional(),
 });
 type Form = z.infer<typeof schema>;
 
@@ -55,7 +55,6 @@ export function MemberFormPage() {
         tel_residencial: data.tel_residencial ?? '',
         tel_comercial: data.tel_comercial ?? '',
         congregacao: data.congregacao ?? '',
-        especialidade: data.especialidade ?? '',
       });
     }
   }, [data, reset]);
@@ -69,7 +68,6 @@ export function MemberFormPage() {
         tel_residencial: values.tel_residencial || null,
         tel_comercial: values.tel_comercial || null,
         congregacao: values.congregacao || null,
-        especialidade: values.especialidade || null,
       }),
     onSuccess: () => {
       setMsg('Dados atualizados.');
@@ -143,9 +141,6 @@ export function MemberFormPage() {
               <Field label="Congregação" htmlFor="congregacao">
                 <Input id="congregacao" {...register('congregacao')} />
               </Field>
-              <Field label="Especialidade" htmlFor="especialidade">
-                <Input id="especialidade" {...register('especialidade')} />
-              </Field>
             </div>
 
             <Button type="submit" loading={mutation.isPending} disabled={!isDirty}>
@@ -155,10 +150,19 @@ export function MemberFormPage() {
         </CardBody>
       </Card>
 
+      <EspecialidadesCard
+        membroId={data.id}
+        atual={data.especialidades.map((e) => e.area_especialidade)}
+        onChanged={() => {
+          void qc.invalidateQueries({ queryKey: ['membros'] });
+          void qc.invalidateQueries({ queryKey: ['membro', id] });
+        }}
+      />
+
       <FuncoesCard
         membroId={data.id}
         atual={data.funcoes}
-        especialidade={data.especialidade}
+        especialidades={data.especialidades.map((e) => e.area_especialidade)}
         podeEditar={isAdminGeral}
         criadoPor={eu!.id}
         onChanged={() => {
@@ -170,17 +174,59 @@ export function MemberFormPage() {
   );
 }
 
+function EspecialidadesCard({
+  membroId,
+  atual,
+  onChanged,
+}: {
+  membroId: string;
+  atual: AreaEspecialidade[];
+  onChanged: () => void;
+}) {
+  const [erro, setErro] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function toggle(area: AreaEspecialidade, ativo: boolean) {
+    setPending(true);
+    setErro(null);
+    try {
+      await definirEspecialidade(membroId, area, ativo);
+      onChanged();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar especialidade.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Especialidades clínicas</h2>
+      </CardHeader>
+      <CardBody>
+        {erro && (
+          <div className="mb-3">
+            <Alert tone="error">{erro}</Alert>
+          </div>
+        )}
+        <EspecialidadesCheckboxes selecionadas={atual} onToggle={toggle} disabled={pending} />
+      </CardBody>
+    </Card>
+  );
+}
+
 function FuncoesCard({
   membroId,
   atual,
-  especialidade,
+  especialidades,
   podeEditar,
   criadoPor,
   onChanged,
 }: {
   membroId: string;
   atual: Array<{ area: Area; nivel: FuncaoNivel }>;
-  especialidade: string | null;
+  especialidades: AreaEspecialidade[];
   podeEditar: boolean;
   criadoPor: string;
   onChanged: () => void;
@@ -224,7 +270,7 @@ function FuncoesCard({
           {AREAS.map((area) => (
             <div key={area} className="flex items-center justify-between gap-3 py-2.5">
               <span className="text-sm text-gray-800">
-                {funcaoAreaLabel(area, especialidade)}
+                {funcaoAreaLabel(area, especialidades)}
               </span>
               <Select
                 className="w-40"

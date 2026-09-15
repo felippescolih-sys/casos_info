@@ -5,7 +5,7 @@
  *   npm run make:admin -- felippe@exemplo.com
  *   npm run make:admin -- fulano@exemplo.com gvps ajudante
  *
- * Áreas: geral | apresentacoes | gvps | especialidades | facilitadores | medicos
+ * Áreas: geral | colih | apresentacoes | gvps | especialidades | facilitadores | medicos
  * Níveis: admin | ajudante
  *
  * Requer SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY em .env.import.
@@ -13,7 +13,7 @@
 import { admin } from './_env.ts';
 import type { Area, FuncaoNivel } from '../src/types/database.ts';
 
-const AREAS = ['geral', 'apresentacoes', 'gvps', 'especialidades', 'facilitadores', 'medicos'];
+const AREAS = ['geral', 'colih', 'apresentacoes', 'gvps', 'especialidades', 'facilitadores', 'medicos'];
 
 const email = process.argv[2];
 const area = (process.argv[3] ?? 'geral') as Area;

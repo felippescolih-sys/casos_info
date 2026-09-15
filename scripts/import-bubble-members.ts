@@ -24,7 +24,6 @@ interface BubbleUser {
   telcomercial?: string;
   congregaçao?: string;
   congregacao?: string;
-  especialidade?: string;
   nomeesposa?: string;
   telesposa?: string;
   reunioes?: string;
@@ -113,7 +112,6 @@ for (const u of importaveis) {
     nome: u.nome ?? email.split('@')[0],
     tel_zap: u.tel_zap ?? null,
     congregacao,
-    especialidade: u.especialidade ?? null,
   };
 
   let userId = byEmail.get(email);
@@ -143,7 +141,6 @@ for (const u of importaveis) {
       tel_residencial: u.telres ?? null,
       tel_comercial: u.telcomercial ?? null,
       congregacao,
-      especialidade: u.especialidade ?? null,
       reunioes: u.reunioes ?? null,
       nome_esposa: u.nomeesposa ?? null,
       tel_esposa: u.telesposa ?? null,

@@ -17,7 +17,6 @@ const schema = z.object({
   password: z.string().min(8, 'Mínimo de 8 caracteres'),
   tel_zap: z.string().min(8, 'Informe o WhatsApp'),
   congregacao: z.string().optional(),
-  especialidade: z.string().optional(),
 });
 type Form = z.infer<typeof schema>;
 
@@ -40,7 +39,6 @@ export function SignupPage() {
           nome: values.nome,
           tel_zap: values.tel_zap,
           congregacao: values.congregacao ?? null,
-          especialidade: values.especialidade ?? null,
         },
       },
     });
@@ -99,9 +97,6 @@ export function SignupPage() {
         </Field>
         <Field label="Congregação" htmlFor="congregacao" error={errors.congregacao?.message}>
           <Input id="congregacao" {...register('congregacao')} />
-        </Field>
-        <Field label="Especialidade" htmlFor="especialidade" error={errors.especialidade?.message}>
-          <Input id="especialidade" {...register('especialidade')} />
         </Field>
         <Button type="submit" className="w-full" loading={isSubmitting}>
           Criar conta

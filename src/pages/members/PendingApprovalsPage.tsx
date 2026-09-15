@@ -56,7 +56,6 @@ function PendingRow({
     nome: string;
     email: string;
     congregacao: string | null;
-    especialidade: string | null;
     tel_zap: string | null;
   };
   aprovadorId: string;
@@ -86,9 +85,7 @@ function PendingRow({
             </Link>
             <p className="text-sm text-gray-500">{membro.email}</p>
             <p className="mt-1 text-xs text-gray-500">
-              {[membro.congregacao, membro.especialidade, membro.tel_zap]
-                .filter(Boolean)
-                .join(' · ') || '—'}
+              {[membro.congregacao, membro.tel_zap].filter(Boolean).join(' · ') || '—'}
             </p>
           </div>
           {err && <Alert tone="error">{(err as Error).message}</Alert>}

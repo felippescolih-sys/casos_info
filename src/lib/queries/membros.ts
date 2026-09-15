@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Area,
+  AreaEspecialidade,
   FuncaoNivel,
   MemberStatus,
   MembroRow,
@@ -9,6 +10,7 @@ import type {
 
 export type MembroComFuncoes = MembroRow & {
   funcoes: Array<{ area: Area; nivel: FuncaoNivel }>;
+  especialidades: Array<{ area_especialidade: AreaEspecialidade }>;
 };
 
 export interface MembrosFilter {
@@ -19,7 +21,8 @@ export interface MembrosFilter {
 
 // `membro_funcoes` tem 2 FKs pra `membros` (membro_id e criado_por) — precisa
 // desambiguar qual relação embutir, senão o PostgREST recusa a query.
-const SELECT_COM_FUNCOES = '*, funcoes:membro_funcoes!membro_id(area, nivel)';
+const SELECT_COM_FUNCOES =
+  '*, funcoes:membro_funcoes!membro_id(area, nivel), especialidades:membro_especialidades(area_especialidade)';
 
 export async function listMembros(filter: MembrosFilter = {}): Promise<MembroComFuncoes[]> {
   let query = supabase
@@ -96,5 +99,29 @@ export async function definirFuncao(
   const { error } = await supabase
     .from('membro_funcoes')
     .upsert({ membro_id: membroId, area, nivel, criado_por: criadoPor }, { onConflict: 'membro_id,area' });
+  if (error) throw error;
+}
+
+/** Liga/desliga uma especialidade clínica do membro. Um membro pode ter várias ao mesmo tempo. */
+export async function definirEspecialidade(
+  membroId: string,
+  area: AreaEspecialidade,
+  ativo: boolean,
+) {
+  if (!ativo) {
+    const { error } = await supabase
+      .from('membro_especialidades')
+      .delete()
+      .eq('membro_id', membroId)
+      .eq('area_especialidade', area);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from('membro_especialidades')
+    .upsert(
+      { membro_id: membroId, area_especialidade: area },
+      { onConflict: 'membro_id,area_especialidade' },
+    );
   if (error) throw error;
 }

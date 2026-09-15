@@ -104,7 +104,10 @@ export function MembersListPage() {
                               key={f.area}
                               area={f.area}
                               nivel={f.nivel}
-                              label={funcaoAreaLabel(f.area, m.especialidade)}
+                              label={funcaoAreaLabel(
+                                f.area,
+                                m.especialidades.map((e) => e.area_especialidade),
+                              )}
                             />
                           ))
                         ) : (

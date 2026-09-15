@@ -32,7 +32,6 @@ export type MembroRow = {
   tel_comercial: string | null;
   tel_celular: string | null;
   congregacao: string | null;
-  especialidade: string | null;
   reunioes: string | null;
   nome_esposa: string | null;
   tel_esposa: string | null;
@@ -61,6 +60,16 @@ export type MembroFuncaoRow = {
 export type MembroFuncaoInsert = Omit<MembroFuncaoRow, 'criado_por' | 'created_at'> &
   Partial<Pick<MembroFuncaoRow, 'criado_por' | 'created_at'>>;
 export type MembroFuncaoUpdate = Partial<MembroFuncaoRow>;
+
+/** Especialidades clínicas do membro. Um membro pode ter várias ao mesmo tempo
+ * (ex.: cárdio-tórax e TMO), por isso é tabela separada em vez de coluna única. */
+export type MembroEspecialidadeRow = {
+  membro_id: string;
+  area_especialidade: AreaEspecialidade;
+  created_at: string;
+};
+export type MembroEspecialidadeInsert = Omit<MembroEspecialidadeRow, 'created_at'> &
+  Partial<Pick<MembroEspecialidadeRow, 'created_at'>>;
 
 // ── Casos ────────────────────────────────────────────────────
 export type CasoStatus = 'aberto' | 'encerrado';
@@ -255,6 +264,12 @@ export type Database = {
         Row: MembroFuncaoRow;
         Insert: MembroFuncaoInsert;
         Update: MembroFuncaoUpdate;
+        Relationships: [];
+      };
+      membro_especialidades: {
+        Row: MembroEspecialidadeRow;
+        Insert: MembroEspecialidadeInsert;
+        Update: Partial<MembroEspecialidadeRow>;
         Relationships: [];
       };
       casos: {

@@ -20,10 +20,12 @@ export const areaLabel: Record<Area, string> = {
   medicos: 'Lista de médicos',
 };
 
-/** Rótulo de exibição de uma função: pra `especialidades`, mostra a especialidade
- * do próprio membro em vez do nome genérico da área. */
-export function funcaoAreaLabel(area: Area, especialidade?: string | null): string {
-  if (area === 'especialidades' && especialidade) return especialidade;
+/** Rótulo de exibição de uma função: pra `especialidades`, mostra a(s)
+ * especialidade(s) clínica(s) do próprio membro em vez do nome genérico da área. */
+export function funcaoAreaLabel(area: Area, especialidades?: AreaEspecialidade[]): string {
+  if (area === 'especialidades' && especialidades?.length) {
+    return especialidades.map((e) => areaEspecialidadeLabel[e]).join(', ');
+  }
   return areaLabel[area];
 }
 
@@ -55,5 +57,5 @@ export const areaEspecialidadeLabel: Record<AreaEspecialidade, string> = {
   tmo: 'TMO',
   orto_neuro: 'ORTO-NEURO',
   cardio_torax: 'CÁRDIO-TÓRAX',
-  geoneo: 'GEONeo',
+  geoneo: 'GONeo',
 };

@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthProvider';
-import { updateMembro } from '@/lib/queries/membros';
+import { definirEspecialidade, updateMembro } from '@/lib/queries/membros';
+import { EspecialidadesCheckboxes } from '@/components/EspecialidadesCheckboxes';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
@@ -12,6 +13,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { AvatarUploader } from './AvatarUploader';
+import type { AreaEspecialidade } from '@/types/database';
 
 const perfilSchema = z.object({
   nome: z.string().min(3, 'Informe o nome completo'),
@@ -19,7 +21,6 @@ const perfilSchema = z.object({
   tel_residencial: z.string().optional(),
   tel_comercial: z.string().optional(),
   congregacao: z.string().optional(),
-  especialidade: z.string().optional(),
   reunioes: z.string().optional(),
   nome_esposa: z.string().optional(),
   tel_esposa: z.string().optional(),
@@ -27,7 +28,7 @@ const perfilSchema = z.object({
 type PerfilForm = z.infer<typeof perfilSchema>;
 
 export function MyAccountPage() {
-  const { membro, session, refreshMembro } = useAuth();
+  const { membro, especialidades, session, refreshMembro } = useAuth();
 
   if (!membro) return null;
 
@@ -51,10 +52,58 @@ export function MyAccountPage() {
 
       <PerfilCard membro={membro} onSaved={refreshMembro} />
 
+      <EspecialidadesCard
+        membroId={membro.id}
+        atual={especialidades}
+        onChanged={refreshMembro}
+      />
+
       <EmailCard currentEmail={session?.user.email ?? membro.email} />
 
       <SenhaCard />
     </div>
+  );
+}
+
+function EspecialidadesCard({
+  membroId,
+  atual,
+  onChanged,
+}: {
+  membroId: string;
+  atual: AreaEspecialidade[];
+  onChanged: () => Promise<void>;
+}) {
+  const [erro, setErro] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function toggle(area: AreaEspecialidade, ativo: boolean) {
+    setPending(true);
+    setErro(null);
+    try {
+      await definirEspecialidade(membroId, area, ativo);
+      await onChanged();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar especialidade.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Especialidades clínicas</h2>
+      </CardHeader>
+      <CardBody>
+        {erro && (
+          <div className="mb-3">
+            <Alert tone="error">{erro}</Alert>
+          </div>
+        )}
+        <EspecialidadesCheckboxes selecionadas={atual} onToggle={toggle} disabled={pending} />
+      </CardBody>
+    </Card>
   );
 }
 
@@ -79,7 +128,6 @@ function PerfilCard({
       tel_residencial: membro.tel_residencial ?? '',
       tel_comercial: membro.tel_comercial ?? '',
       congregacao: membro.congregacao ?? '',
-      especialidade: membro.especialidade ?? '',
       reunioes: membro.reunioes ?? '',
       nome_esposa: membro.nome_esposa ?? '',
       tel_esposa: membro.tel_esposa ?? '',
@@ -96,7 +144,6 @@ function PerfilCard({
         tel_residencial: values.tel_residencial || null,
         tel_comercial: values.tel_comercial || null,
         congregacao: values.congregacao || null,
-        especialidade: values.especialidade || null,
         reunioes: values.reunioes || null,
         nome_esposa: values.nome_esposa || null,
         tel_esposa: values.tel_esposa || null,
@@ -132,9 +179,6 @@ function PerfilCard({
             </Field>
             <Field label="Congregação" htmlFor="congregacao">
               <Input id="congregacao" {...register('congregacao')} />
-            </Field>
-            <Field label="Especialidade" htmlFor="especialidade">
-              <Input id="especialidade" {...register('especialidade')} />
             </Field>
             <Field label="Reuniões" htmlFor="reunioes">
               <Input id="reunioes" {...register('reunioes')} />
