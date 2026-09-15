@@ -55,25 +55,15 @@ export function DashboardPage() {
 }
 
 function EscalaBanner() {
-  const { data: plantao } = useQuery({ queryKey: ['escala-atual', 'plantao'], queryFn: () => getEscalaAtual('plantao') });
-  const { data: triagem } = useQuery({ queryKey: ['escala-atual', 'triagem'], queryFn: () => getEscalaAtual('triagem') });
+  const { data: plantao } = useQuery({ queryKey: ['escala-atual'], queryFn: getEscalaAtual });
 
-  if (!plantao && !triagem) return null;
+  if (!plantao) return null;
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {plantao && (
-        <div className="flex items-center gap-2 rounded-md bg-green-800 px-4 py-2 text-sm text-white">
-          <span className="font-medium">Plantonista:</span> {plantao.membro_nome}
-          {plantao.ajudante_nome && (
-            <span className="text-green-100"> · Ajudante: {plantao.ajudante_nome}</span>
-          )}
-        </div>
-      )}
-      {triagem && (
-        <div className="flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm text-white">
-          <span className="font-medium">Triagem:</span> {triagem.membro_nome}
-        </div>
+    <div className="flex items-center gap-2 rounded-md bg-green-800 px-4 py-2 text-sm text-white">
+      <span className="font-medium">Plantonista:</span> {plantao.membro_nome}
+      {plantao.ajudante_nome && (
+        <span className="text-green-100"> · Ajudante: {plantao.ajudante_nome}</span>
       )}
     </div>
   );

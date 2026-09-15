@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { EscalaInsert, EscalaRow, EscalaTipo, EscalaUpdate } from '@/types/database';
+import type { EscalaInsert, EscalaRow, EscalaUpdate } from '@/types/database';
 
 export type EscalaComNomes = EscalaRow & {
   membro_nome: string;
@@ -21,13 +21,12 @@ function comNomes(row: EscalaRowComMembros): EscalaComNomes {
   };
 }
 
-/** Registro de escala cujo período contém o momento atual (banner "de hoje"). */
-export async function getEscalaAtual(tipo: EscalaTipo): Promise<EscalaComNomes | null> {
+/** Escala de plantão cujo período contém o momento atual (banner "de hoje"). */
+export async function getEscalaAtual(): Promise<EscalaComNomes | null> {
   const agora = new Date().toISOString();
   const { data, error } = await supabase
     .from('escalas')
     .select(SELECT_COM_NOMES)
-    .eq('tipo', tipo)
     .lte('inicio', agora)
     .gte('fim', agora)
     .order('inicio', { ascending: false })
@@ -37,19 +36,12 @@ export async function getEscalaAtual(tipo: EscalaTipo): Promise<EscalaComNomes |
   return data ? comNomes(data as unknown as EscalaRowComMembros) : null;
 }
 
-export interface EscalasFilter {
-  tipo?: EscalaTipo | 'todos';
-}
-
 /** Lista as escalas mais recentes primeiro (futuras e passadas). */
-export async function listEscalas(filter: EscalasFilter = {}): Promise<EscalaComNomes[]> {
-  let query = supabase
+export async function listEscalas(): Promise<EscalaComNomes[]> {
+  const { data, error } = await supabase
     .from('escalas')
     .select(SELECT_COM_NOMES)
     .order('inicio', { ascending: false });
-  if (filter.tipo && filter.tipo !== 'todos') query = query.eq('tipo', filter.tipo);
-
-  const { data, error } = await query;
   if (error) throw error;
   return ((data ?? []) as unknown as EscalaRowComMembros[]).map(comNomes);
 }

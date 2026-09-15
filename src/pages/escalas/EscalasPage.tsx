@@ -9,7 +9,6 @@ import {
   excluirEscala,
   listEscalas,
   type EscalaComNomes,
-  type EscalasFilter,
 } from '@/lib/queries/escalas';
 import { listMembrosAtivos } from '@/lib/queries/membros';
 import { formatDateTime } from '@/lib/format';
@@ -20,19 +19,15 @@ import { Input, Select } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import type { EscalaTipo } from '@/types/database';
-
-const TIPO_LABEL: Record<EscalaTipo, string> = { plantao: 'Plantão', triagem: 'Triagem' };
 
 export function EscalasPage() {
   const qc = useQueryClient();
-  const [filtroTipo, setFiltroTipo] = useState<NonNullable<EscalasFilter['tipo']>>('todos');
   const [form, setForm] = useState<'novo' | EscalaComNomes | null>(null);
   const [excluindo, setExcluindo] = useState<EscalaComNomes | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['escalas', filtroTipo],
-    queryFn: () => listEscalas({ tipo: filtroTipo }),
+    queryKey: ['escalas'],
+    queryFn: listEscalas,
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['escalas'] });
@@ -48,25 +43,11 @@ export function EscalasPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-gray-900">Escalas</h1>
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Escalas de plantão</h1>
+          <p className="text-sm text-gray-500">Quem está designado em cada período.</p>
+        </div>
         <Button onClick={() => setForm('novo')}>+ Nova escala</Button>
-      </div>
-
-      <div className="flex gap-2">
-        {(['todos', 'plantao', 'triagem'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setFiltroTipo(t)}
-            className={`rounded-full px-3 py-1 text-sm font-medium ${
-              filtroTipo === t
-                ? 'bg-brand-700 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {t === 'todos' ? 'Todos' : TIPO_LABEL[t]}
-          </button>
-        ))}
       </div>
 
       {error && <Alert tone="error">{(error as Error).message}</Alert>}
@@ -83,7 +64,6 @@ export function EscalasPage() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Início</th>
                   <th className="px-4 py-3">Fim</th>
                   <th className="px-4 py-3">Responsável</th>
@@ -94,7 +74,6 @@ export function EscalasPage() {
               <tbody className="divide-y divide-gray-100">
                 {data.map((e) => (
                   <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">{TIPO_LABEL[e.tipo]}</td>
                     <td className="px-4 py-3">{formatDateTime(e.inicio)}</td>
                     <td className="px-4 py-3">{formatDateTime(e.fim)}</td>
                     <td className="px-4 py-3">{e.membro_nome}</td>
@@ -147,8 +126,7 @@ export function EscalasPage() {
       >
         {excluindo && (
           <>
-            Remove a designação de {excluindo.membro_nome} ({TIPO_LABEL[excluindo.tipo]},{' '}
-            {formatDateTime(excluindo.inicio)}).
+            Remove a designação de {excluindo.membro_nome} ({formatDateTime(excluindo.inicio)}).
           </>
         )}
       </ConfirmDialog>
@@ -160,7 +138,6 @@ export function EscalasPage() {
 
 const schema = z
   .object({
-    tipo: z.enum(['plantao', 'triagem']),
     membro_id: z.string().min(1, 'Escolha o responsável'),
     ajudante_id: z.string().optional(),
     inicio: z.string().min(1, 'Informe o início'),
@@ -193,19 +170,16 @@ function EscalaFormDialog({
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: {
-      tipo: atual?.tipo ?? 'plantao',
       membro_id: atual?.membro_id ?? '',
       ajudante_id: atual?.ajudante_id ?? '',
       inicio: toLocalInput(atual?.inicio),
       fim: toLocalInput(atual?.fim),
     },
   });
-  const tipo = watch('tipo');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -217,9 +191,8 @@ function EscalaFormDialog({
     setErro(null);
     try {
       const patch = {
-        tipo: values.tipo,
         membro_id: values.membro_id,
-        ajudante_id: values.tipo === 'plantao' && values.ajudante_id ? values.ajudante_id : null,
+        ajudante_id: values.ajudante_id || null,
         inicio: new Date(values.inicio).toISOString(),
         fim: new Date(values.fim).toISOString(),
       };
@@ -243,12 +216,6 @@ function EscalaFormDialog({
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {erro && <Alert tone="error">{erro}</Alert>}
-          <Field label="Tipo" htmlFor="tipo" error={errors.tipo?.message}>
-            <Select id="tipo" {...register('tipo')}>
-              <option value="plantao">Plantão</option>
-              <option value="triagem">Triagem</option>
-            </Select>
-          </Field>
           <Field label="Responsável" htmlFor="membro_id" error={errors.membro_id?.message}>
             <Select id="membro_id" {...register('membro_id')}>
               <option value="">Escolha o membro…</option>
@@ -259,18 +226,16 @@ function EscalaFormDialog({
               ))}
             </Select>
           </Field>
-          {tipo === 'plantao' && (
-            <Field label="Ajudante (opcional)" htmlFor="ajudante_id">
-              <Select id="ajudante_id" {...register('ajudante_id')}>
-                <option value="">— sem ajudante</option>
-                {(membros ?? []).map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          )}
+          <Field label="Ajudante (opcional)" htmlFor="ajudante_id">
+            <Select id="ajudante_id" {...register('ajudante_id')}>
+              <option value="">— sem ajudante</option>
+              {(membros ?? []).map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Início" htmlFor="inicio" error={errors.inicio?.message}>
               <Input id="inicio" type="datetime-local" {...register('inicio')} />

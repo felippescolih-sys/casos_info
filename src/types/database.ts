@@ -73,13 +73,9 @@ export type MembroEspecialidadeRow = {
 export type MembroEspecialidadeInsert = Omit<MembroEspecialidadeRow, 'created_at' | 'ordem'> &
   Partial<Pick<MembroEspecialidadeRow, 'created_at' | 'ordem'>>;
 
-/** Escala de plantão/triagem: quem está designado num período (início/fim).
- * "Ajudante" só se aplica a `tipo = 'plantao'`. */
-export type EscalaTipo = 'plantao' | 'triagem';
-
+/** Escala de plantão: quem está designado num período (início/fim). */
 export type EscalaRow = {
   id: string;
-  tipo: EscalaTipo;
   membro_id: string;
   ajudante_id: string | null;
   inicio: string;
@@ -358,7 +354,6 @@ export type Database = {
       funcao_nivel: FuncaoNivel;
       caso_status: CasoStatus;
       area_especialidade: AreaEspecialidade;
-      escala_tipo: EscalaTipo;
     };
     CompositeTypes: Record<string, never>;
   };
