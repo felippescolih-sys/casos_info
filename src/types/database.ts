@@ -81,14 +81,20 @@ export type EscalaRow = {
   inicio: string;
   fim: string;
   criado_por: string | null;
+  legacy_bubble_id: string | null;
   created_at: string;
   updated_at: string;
 };
 export type EscalaInsert = Omit<
   EscalaRow,
-  'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id'
+  'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id' | 'legacy_bubble_id'
 > &
-  Partial<Pick<EscalaRow, 'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id'>>;
+  Partial<
+    Pick<
+      EscalaRow,
+      'id' | 'criado_por' | 'created_at' | 'updated_at' | 'ajudante_id' | 'legacy_bubble_id'
+    >
+  >;
 export type EscalaUpdate = Partial<Omit<EscalaRow, 'id' | 'created_at'>>;
 
 // ── Casos ────────────────────────────────────────────────────

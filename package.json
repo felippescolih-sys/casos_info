@@ -16,6 +16,7 @@
     "seed:congregacoes": "tsx scripts/seed-congregacoes.ts",
     "import:hospitais": "tsx scripts/import-bubble-hospitais.ts",
     "import:hospitais-csv": "tsx scripts/import-hospitais-csv.ts",
+    "import:plantao": "tsx scripts/import-bubble-plantao.ts",
     "make:admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {
