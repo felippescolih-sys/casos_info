@@ -14,6 +14,8 @@
     "import:membros": "tsx scripts/import-bubble-members.ts",
     "import:casos": "tsx scripts/import-bubble-casos.ts",
     "seed:congregacoes": "tsx scripts/seed-congregacoes.ts",
+    "import:hospitais": "tsx scripts/import-bubble-hospitais.ts",
+    "import:hospitais-csv": "tsx scripts/import-hospitais-csv.ts",
     "make:admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {

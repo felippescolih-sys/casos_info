@@ -8,6 +8,7 @@ interface NavItem {
   to: string;
   label: string;
   gestor?: boolean;
+  adminGeral?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -16,12 +17,15 @@ const NAV: NavItem[] = [
   { to: '/escalas', label: 'Escalas', gestor: true },
   { to: '/membros', label: 'Membros', gestor: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },
+  { to: '/hospitais', label: 'Hospitais', adminGeral: true },
 ];
 
 export function AppShell() {
-  const { gerenciaMembros } = useAuth();
+  const { gerenciaMembros, isAdminGeral } = useAuth();
   const [open, setOpen] = useState(false);
-  const items = NAV.filter((i) => !i.gestor || gerenciaMembros);
+  const items = NAV.filter(
+    (i) => (!i.gestor || gerenciaMembros) && (!i.adminGeral || isAdminGeral),
+  );
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">

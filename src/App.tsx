@@ -20,8 +20,10 @@ import { CasosListPage } from '@/pages/casos/CasosListPage';
 import { CasoDetailPage } from '@/pages/casos/CasoDetailPage';
 import { CasoFormPage } from '@/pages/casos/CasoFormPage';
 import { EscalasPage } from '@/pages/escalas/EscalasPage';
+import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
+const canManageHospitais = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
 
 export default function App() {
   return (
@@ -79,6 +81,14 @@ export default function App() {
           element={
             <RequireAuth canAccess={canManageMembers}>
               <MemberFormPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hospitais"
+          element={
+            <RequireAuth canAccess={canManageHospitais}>
+              <HospitaisPage />
             </RequireAuth>
           }
         />

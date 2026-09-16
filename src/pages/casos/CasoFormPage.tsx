@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '@/auth/AuthProvider';
 import { atualizarCaso, criarCaso, getCasoCompleto } from '@/lib/queries/casos';
 import { listCongregacoes } from '@/lib/queries/congregacoes';
+import { listHospitaisNomes } from '@/lib/queries/hospitais';
 import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Combobox } from '@/components/ui/Combobox';
@@ -109,6 +110,11 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
   const congsQ = useQuery({
     queryKey: ['congregacoes'],
     queryFn: listCongregacoes,
+    staleTime: 3_600_000,
+  });
+  const hospitaisQ = useQuery({
+    queryKey: ['hospitais', 'nomes'],
+    queryFn: listHospitaisNomes,
     staleTime: 3_600_000,
   });
 
@@ -248,7 +254,12 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         </div>
         <Row cols={1}>
           <Cell label="Nome do hospital">
-            <FInput {...t('hospital_nome')} />
+            <Combobox
+              value={String(watch('hospital_nome') ?? '')}
+              onChange={(val) => setValue('hospital_nome', val, { shouldDirty: true })}
+              options={hospitaisQ.data ?? []}
+              placeholder="Buscar hospital…"
+            />
           </Cell>
         </Row>
         <Row cols={4}>
@@ -614,6 +625,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
       </Sheet>
 
       <input type="hidden" {...register('congregacao')} />
+      <input type="hidden" {...register('hospital_nome')} />
 
       <p className="text-xs text-gray-500">
         OBSERVAÇÃO: foi mencionada uma possível <strong>ação judicial</strong>? Nesse caso, contate

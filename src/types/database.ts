@@ -276,6 +276,25 @@ export type CasoResumoRow = Pick<
   | 'created_at'
 >;
 
+export type HospitalRow = {
+  id: string;
+  nome: string;
+  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  telefone: string | null;
+  fone_uti: string | null;
+  email: string | null;
+  website: string | null;
+  ativo: boolean;
+  legacy_bubble_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HospitalInsert = Partial<HospitalRow> & Pick<HospitalRow, 'nome'>;
+export type HospitalUpdate = Partial<Omit<HospitalRow, 'id' | 'created_at'>>;
+
 export type Database = {
   public: {
     Tables: {
@@ -320,6 +339,12 @@ export type Database = {
         Insert: Omit<CasoAnexoRow, 'id' | 'created_at'> &
           Partial<Pick<CasoAnexoRow, 'id' | 'created_at'>>;
         Update: Partial<CasoAnexoRow>;
+        Relationships: [];
+      };
+      hospitais: {
+        Row: HospitalRow;
+        Insert: HospitalInsert;
+        Update: HospitalUpdate;
         Relationships: [];
       };
     };
