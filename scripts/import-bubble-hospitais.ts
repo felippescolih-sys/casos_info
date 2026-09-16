@@ -65,7 +65,7 @@ for (const r of registros) {
   // mais recente (por ordem de chegada, já que a API não está ordenada por data aqui).
   porNome.set(row.nome, row);
 }
-const rows = [...porNome.values()];
+const rows = [...porNome.values()].map((r) => ({ ...r, nome: r.nome as string }));
 
 console.log(`\nsem nome (ignorados): ${semNome.size}`);
 console.log(`nomes únicos a importar: ${rows.length} (de ${registros.length} registros)`);
