@@ -17,6 +17,9 @@
     "import:hospitais": "tsx scripts/import-bubble-hospitais.ts",
     "import:hospitais-csv": "tsx scripts/import-hospitais-csv.ts",
     "import:plantao": "tsx scripts/import-bubble-plantao.ts",
+    "import:especialidades": "tsx scripts/import-bubble-especialidades.ts",
+    "import:medicos": "tsx scripts/import-bubble-medicos.ts",
+    "import:medicos-geral": "tsx scripts/import-bubble-medicos-geral.ts",
     "make:admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {

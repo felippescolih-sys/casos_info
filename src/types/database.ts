@@ -301,6 +301,66 @@ export type HospitalRow = {
 export type HospitalInsert = Partial<HospitalRow> & Pick<HospitalRow, 'nome'>;
 export type HospitalUpdate = Partial<Omit<HospitalRow, 'id' | 'created_at'>>;
 
+export type EspecialidadeMedicaRow = {
+  id: string;
+  nome: string;
+  legacy_bubble_id: string | null;
+  created_at: string;
+};
+
+export type MedicoRow = {
+  id: string;
+  nome: string;
+  foto_url: string | null;
+  crm_uf: string | null;
+  email: string | null;
+  membro_indicacao: string | null;
+  especialidade_id: string | null;
+  subespecialidade: string | null;
+  rating: number | null;
+  infos_add: string | null;
+  sus: boolean | null;
+  convenio: boolean | null;
+  particular: boolean | null;
+  telemedicina: boolean | null;
+  medico_tj: boolean | null;
+  pediatria: boolean | null;
+  atend_consult: boolean | null;
+  primeira_visita: boolean | null;
+  revisita: boolean | null;
+  tel_consultorio: string | null;
+  tel_secretaria: string | null;
+  tel_confidencial: string | null;
+  nome_secretaria: string | null;
+  endereco_consultorio: string | null;
+  hospitais_atua: string | null;
+  end_hospital: string | null;
+  acompanhante: string | null;
+  ultima_visita: string | null;
+  ativo: boolean;
+  legacy_bubble_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MedicoInsert = Partial<MedicoRow> & Pick<MedicoRow, 'nome'>;
+export type MedicoUpdate = Partial<Omit<MedicoRow, 'id' | 'created_at'>>;
+
+export type MedicoGeralRow = {
+  id: string;
+  nome: string;
+  crm_uf: string | null;
+  especialidade_id: string | null;
+  observacoes: string | null;
+  criado_por: string | null;
+  legacy_bubble_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MedicoGeralInsert = Partial<MedicoGeralRow> & Pick<MedicoGeralRow, 'nome'>;
+export type MedicoGeralUpdate = Partial<Omit<MedicoGeralRow, 'id' | 'created_at'>>;
+
 export type Database = {
   public: {
     Tables: {
@@ -353,6 +413,24 @@ export type Database = {
         Update: HospitalUpdate;
         Relationships: [];
       };
+      especialidades_medicas: {
+        Row: EspecialidadeMedicaRow;
+        Insert: Partial<EspecialidadeMedicaRow> & Pick<EspecialidadeMedicaRow, 'nome'>;
+        Update: Partial<Omit<EspecialidadeMedicaRow, 'id' | 'created_at'>>;
+        Relationships: [];
+      };
+      medicos: {
+        Row: MedicoRow;
+        Insert: MedicoInsert;
+        Update: MedicoUpdate;
+        Relationships: [];
+      };
+      medicos_geral: {
+        Row: MedicoGeralRow;
+        Insert: MedicoGeralInsert;
+        Update: MedicoGeralUpdate;
+        Relationships: [];
+      };
     };
     Views: {
       casos_resumo: {
@@ -381,6 +459,10 @@ export type Database = {
       casos_por_hospital: {
         Args: Record<string, never>;
         Returns: { hospital: string; abertos: number; encerrados: number; total: number }[];
+      };
+      medicos_total_casos: {
+        Args: Record<string, never>;
+        Returns: { nome: string; total: number }[];
       };
     };
     Enums: {

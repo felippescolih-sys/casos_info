@@ -21,6 +21,7 @@ import { CasoDetailPage } from '@/pages/casos/CasoDetailPage';
 import { CasoFormPage } from '@/pages/casos/CasoFormPage';
 import { EscalasPage } from '@/pages/escalas/EscalasPage';
 import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
+import { MedicosPage } from '@/pages/medicos/MedicosPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 const canManageHospitais = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
@@ -92,6 +93,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route path="/medicos" element={<MedicosPage />} />
         <Route path="/403" element={<ForbiddenPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

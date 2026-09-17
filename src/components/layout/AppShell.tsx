@@ -14,6 +14,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Início' },
   { to: '/casos', label: 'Casos' },
+  { to: '/medicos', label: 'Médicos' },
   { to: '/escalas', label: 'Escalas', gestor: true },
   { to: '/membros', label: 'Membros', gestor: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },

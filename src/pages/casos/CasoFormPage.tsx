@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { atualizarCaso, criarCaso, getCasoCompleto } from '@/lib/queries/casos';
 import { listCongregacoes } from '@/lib/queries/congregacoes';
 import { listHospitaisNomes } from '@/lib/queries/hospitais';
+import { MedicoPicker } from '@/components/MedicoPicker';
 import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Combobox } from '@/components/ui/Combobox';
@@ -387,7 +388,11 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         <Band tone="green">Informações sobre o(s) médico(s)</Band>
         <Row cols={2}>
           <Cell label="Médico responsável">
-            <FInput {...t('medico_responsavel')} />
+            <MedicoPicker
+              value={String(watch('medico_responsavel') ?? '')}
+              onChange={(val) => setValue('medico_responsavel', val, { shouldDirty: true })}
+              placeholder="Buscar médico…"
+            />
           </Cell>
           <Cell label="Especialidade">
             <FInput {...t('especialidade')} />
@@ -395,7 +400,11 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         </Row>
         <Row cols={2}>
           <Cell label="Outro médico">
-            <FInput {...t('outro_medico')} />
+            <MedicoPicker
+              value={String(watch('outro_medico') ?? '')}
+              onChange={(val) => setValue('outro_medico', val, { shouldDirty: true })}
+              placeholder="Buscar médico…"
+            />
           </Cell>
           <Cell label="Especialidade">
             <FInput {...t('outro_medico_especialidade')} />
@@ -451,7 +460,11 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         </Band>
         <Row cols={2}>
           <Cell label="Nome do médico consultor">
-            <FInput {...t('medico_consultor_nome')} />
+            <MedicoPicker
+              value={String(watch('medico_consultor_nome') ?? '')}
+              onChange={(val) => setValue('medico_consultor_nome', val, { shouldDirty: true })}
+              placeholder="Buscar médico…"
+            />
           </Cell>
           <Cell label="Preferências de contato">
             <FInput {...t('medico_consultor_contato')} />
@@ -490,7 +503,11 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         </Row>
         <Row cols={2}>
           <Cell label="Médico responsável no destino">
-            <FInput {...t('transf_medico_destino')} />
+            <MedicoPicker
+              value={String(watch('transf_medico_destino') ?? '')}
+              onChange={(val) => setValue('transf_medico_destino', val, { shouldDirty: true })}
+              placeholder="Buscar médico…"
+            />
           </Cell>
           <Cell label="Telefone de contato no destino">
             <FInput {...t('transf_telefone_destino')} />
@@ -626,6 +643,10 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
 
       <input type="hidden" {...register('congregacao')} />
       <input type="hidden" {...register('hospital_nome')} />
+      <input type="hidden" {...register('medico_responsavel')} />
+      <input type="hidden" {...register('outro_medico')} />
+      <input type="hidden" {...register('medico_consultor_nome')} />
+      <input type="hidden" {...register('transf_medico_destino')} />
 
       <p className="text-xs text-gray-500">
         OBSERVAÇÃO: foi mencionada uma possível <strong>ação judicial</strong>? Nesse caso, contate
