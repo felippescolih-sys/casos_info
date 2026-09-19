@@ -14,6 +14,7 @@ import { Input, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
+import { avisoWhatsapp } from '@/lib/telefone';
 import type { Area, AreaEspecialidade, FuncaoNivel, MemberStatus } from '@/types/database';
 
 const schema = z.object({
@@ -43,6 +44,7 @@ export function MemberFormPage() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isDirty },
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
@@ -129,7 +131,7 @@ export function MemberFormPage() {
               <Input id="nome" {...register('nome')} />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="WhatsApp" htmlFor="tel_zap">
+              <Field label="WhatsApp" htmlFor="tel_zap" warning={avisoWhatsapp(watch('tel_zap'))}>
                 <Input id="tel_zap" inputMode="tel" {...register('tel_zap')} />
               </Field>
               <Field label="Telefone residencial" htmlFor="tel_residencial">

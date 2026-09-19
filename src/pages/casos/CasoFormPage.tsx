@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/cn';
+import { avisoWhatsapp } from '@/lib/telefone';
 import {
   Band,
   BlockCell,
@@ -167,6 +168,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
 
   const t = (name: (typeof TEXT_FIELDS)[number]) => register(name);
   const b = (name: (typeof BOOL_FIELDS)[number]) => register(name);
+  const avisoAnciaos = avisoWhatsapp(watch('anciaos_cont_tel') as string);
   const ctl = (name: (typeof TEXT_FIELDS)[number]) => ({
     value: String(watch(name) ?? ''),
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -298,6 +300,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
           </Cell>
           <Cell label="Telefones de contato dos anciãos">
             <FInput {...t('anciaos_cont_tel')} />
+            {avisoAnciaos && <p className="mt-1 text-xs text-amber-600">{avisoAnciaos}</p>}
           </Cell>
         </Row>
 

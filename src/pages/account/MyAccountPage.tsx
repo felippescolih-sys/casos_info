@@ -13,6 +13,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { AvatarUploader } from './AvatarUploader';
+import { avisoWhatsapp } from '@/lib/telefone';
 import type { AreaEspecialidade } from '@/types/database';
 
 const perfilSchema = z.object({
@@ -119,6 +120,7 @@ function PerfilCard({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<PerfilForm>({
     resolver: zodResolver(perfilSchema),
@@ -168,7 +170,7 @@ function PerfilCard({
             <Input id="nome" {...register('nome')} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="WhatsApp" htmlFor="tel_zap">
+            <Field label="WhatsApp" htmlFor="tel_zap" warning={avisoWhatsapp(watch('tel_zap'))}>
               <Input id="tel_zap" inputMode="tel" {...register('tel_zap')} />
             </Field>
             <Field label="Telefone residencial" htmlFor="tel_residencial">

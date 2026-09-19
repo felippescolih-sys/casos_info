@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
+import { avisoWhatsapp } from '@/lib/telefone';
 
 const schema = z.object({
   nome: z.string().min(3, 'Informe seu nome completo'),
@@ -26,6 +27,7 @@ export function SignupPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
@@ -92,7 +94,12 @@ export function SignupPage() {
         <Field label="Senha" htmlFor="password" error={errors.password?.message} hint="Mínimo 8 caracteres">
           <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
         </Field>
-        <Field label="WhatsApp" htmlFor="tel_zap" error={errors.tel_zap?.message}>
+        <Field
+          label="WhatsApp"
+          htmlFor="tel_zap"
+          error={errors.tel_zap?.message}
+          warning={avisoWhatsapp(watch('tel_zap'))}
+        >
           <Input id="tel_zap" inputMode="tel" placeholder="(11) 99999-9999" {...register('tel_zap')} />
         </Field>
         <Field label="Congregação" htmlFor="congregacao" error={errors.congregacao?.message}>
