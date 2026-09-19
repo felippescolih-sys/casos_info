@@ -10,3 +10,8 @@ major_version = 15
 # Auth (site_url / redirect URLs) fica gerenciado pelo Dashboard por enquanto
 # — evita sobrescrever a config de produção com valores de localhost.
 # Quando o app estiver no Cloudflare Pages, adicionamos um [auth] aqui.
+
+# enviar-wapi só é chamada de dentro do Postgres (trigger/pg_cron), nunca do browser
+# — autenticação é por segredo compartilhado (header x-webhook-secret), não JWT de usuário.
+[functions.enviar-wapi]
+verify_jwt = false
