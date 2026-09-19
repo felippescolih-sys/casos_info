@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
 import { useForm } from 'react-hook-form';
@@ -13,7 +13,7 @@ import {
 } from '@/lib/queries/medicosGeral';
 import { listEspecialidadesMedicas } from '@/lib/queries/especialidadesMedicas';
 import { getMedicosTotalCasos, totalCasosDe } from '@/lib/queries/medicos';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -123,47 +123,43 @@ export function ProspectivosTab() {
       {msg && <Alert tone="success">{msg}</Alert>}
 
       {editing !== undefined && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">
-              {editing ? `Editar ${editing.nome}` : 'Novo médico prospectivo'}
-            </h2>
-          </CardHeader>
-          <CardBody>
-            <form onSubmit={handleSubmit((v) => salvar.mutate(v))} className="space-y-4">
-              {salvar.error && <Alert tone="error">{(salvar.error as Error).message}</Alert>}
-              <Field label="Nome do médico" htmlFor="mg-nome" error={errors.nome?.message}>
-                <Input id="mg-nome" {...register('nome')} />
+        <FormModal
+          titulo={editing ? `Editar ${editing.nome}` : 'Novo médico prospectivo'}
+          onClose={() => setEditing(undefined)}
+        >
+          <form onSubmit={handleSubmit((v) => salvar.mutate(v))} className="space-y-4">
+            {salvar.error && <Alert tone="error">{(salvar.error as Error).message}</Alert>}
+            <Field label="Nome do médico" htmlFor="mg-nome" error={errors.nome?.message}>
+              <Input id="mg-nome" {...register('nome')} />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="CRM/UF" htmlFor="mg-crm">
+                <Input id="mg-crm" {...register('crm_uf')} />
               </Field>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="CRM/UF" htmlFor="mg-crm">
-                  <Input id="mg-crm" {...register('crm_uf')} />
-                </Field>
-                <Field label="Especialidade" htmlFor="mg-esp">
-                  <Select id="mg-esp" {...register('especialidade_id')}>
-                    <option value="">—</option>
-                    {especialidadesQ.data?.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.nome}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </div>
-              <Field label="Observações" htmlFor="mg-obs">
-                <Textarea id="mg-obs" rows={3} {...register('observacoes')} />
+              <Field label="Especialidade" htmlFor="mg-esp">
+                <Select id="mg-esp" {...register('especialidade_id')}>
+                  <option value="">—</option>
+                  {especialidadesQ.data?.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nome}
+                    </option>
+                  ))}
+                </Select>
               </Field>
-              <div className="flex gap-2">
-                <Button type="submit" loading={salvar.isPending} disabled={!isDirty}>
-                  Salvar
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setEditing(undefined)}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
+            </div>
+            <Field label="Observações" htmlFor="mg-obs">
+              <Textarea id="mg-obs" rows={3} {...register('observacoes')} />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" loading={salvar.isPending} disabled={!isDirty}>
+                Salvar
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setEditing(undefined)}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </FormModal>
       )}
 
       <Input
@@ -234,6 +230,32 @@ export function ProspectivosTab() {
       >
         Essa ação não afeta casos que já têm esse nome de médico preenchido.
       </ConfirmDialog>
+    </div>
+  );
+}
+
+function FormModal({
+  titulo,
+  onClose,
+  children,
+}: {
+  titulo: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button aria-label="Fechar" className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-5 shadow-xl">
+        <h2 className="mb-4 font-medium text-gray-900">{titulo}</h2>
+        {children}
+      </div>
     </div>
   );
 }
