@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthProvider';
 import { definirEspecialidade, updateMembro } from '@/lib/queries/membros';
+import { criarAusencia, excluirAusencia, listAusencias } from '@/lib/queries/ausencias';
 import { EspecialidadesCheckboxes } from '@/components/EspecialidadesCheckboxes';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
@@ -12,9 +14,11 @@ import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
+import { Spinner } from '@/components/ui/Spinner';
 import { AvatarUploader } from './AvatarUploader';
 import { avisoWhatsapp } from '@/lib/telefone';
-import type { AreaEspecialidade } from '@/types/database';
+import { formatDateOnly } from '@/lib/format';
+import type { AreaEspecialidade, MembroRow } from '@/types/database';
 
 const perfilSchema = z.object({
   nome: z.string().min(3, 'Informe o nome completo'),
@@ -52,6 +56,10 @@ export function MyAccountPage() {
       </Card>
 
       <PerfilCard membro={membro} onSaved={refreshMembro} />
+
+      <DisponibilidadeCard membro={membro} onSaved={refreshMembro} />
+
+      <AusenciasCard membroId={membro.id} />
 
       <EspecialidadesCard
         membroId={membro.id}
@@ -196,6 +204,244 @@ function PerfilCard({
             Salvar
           </Button>
         </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+const DIAS_SEMANA = [
+  { key: 'disp_seg', label: 'Seg' },
+  { key: 'disp_ter', label: 'Ter' },
+  { key: 'disp_qua', label: 'Qua' },
+  { key: 'disp_qui', label: 'Qui' },
+  { key: 'disp_sex', label: 'Sex' },
+  { key: 'disp_sab', label: 'Sáb' },
+  { key: 'disp_dom', label: 'Dom' },
+] as const;
+type DiaSemanaKey = (typeof DIAS_SEMANA)[number]['key'];
+const TODOS_OS_DIAS = DIAS_SEMANA.map((d) => d.key);
+const DIAS_UTEIS: DiaSemanaKey[] = ['disp_seg', 'disp_ter', 'disp_qua', 'disp_qui', 'disp_sex'];
+const FIM_DE_SEMANA: DiaSemanaKey[] = ['disp_sab', 'disp_dom'];
+
+type DispForm = Record<DiaSemanaKey, boolean> & { disp_evita_ultimos_dias_mes: string };
+
+function DisponibilidadeCard({
+  membro,
+  onSaved,
+}: {
+  membro: MembroRow;
+  onSaved: () => Promise<void>;
+}) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { isSubmitting, isDirty },
+  } = useForm<DispForm>({
+    defaultValues: {
+      disp_seg: membro.disp_seg,
+      disp_ter: membro.disp_ter,
+      disp_qua: membro.disp_qua,
+      disp_qui: membro.disp_qui,
+      disp_sex: membro.disp_sex,
+      disp_sab: membro.disp_sab,
+      disp_dom: membro.disp_dom,
+      disp_evita_ultimos_dias_mes:
+        membro.disp_evita_ultimos_dias_mes != null ? String(membro.disp_evita_ultimos_dias_mes) : '',
+    },
+  });
+
+  function preset(dias: DiaSemanaKey[]) {
+    for (const k of TODOS_OS_DIAS) setValue(k, dias.includes(k), { shouldDirty: true });
+  }
+
+  async function onSubmit(v: DispForm) {
+    setMsg(null);
+    setErro(null);
+    try {
+      await updateMembro(membro.id, {
+        disp_seg: v.disp_seg,
+        disp_ter: v.disp_ter,
+        disp_qua: v.disp_qua,
+        disp_qui: v.disp_qui,
+        disp_sex: v.disp_sex,
+        disp_sab: v.disp_sab,
+        disp_dom: v.disp_dom,
+        disp_evita_ultimos_dias_mes: v.disp_evita_ultimos_dias_mes.trim()
+          ? Number(v.disp_evita_ultimos_dias_mes)
+          : null,
+      });
+      await onSaved();
+      setMsg('Disponibilidade atualizada.');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar.');
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Disponibilidade para plantão</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Em quais dias você pode ser designado como responsável ou ajudante de plantão.
+        </p>
+      </CardHeader>
+      <CardBody>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {msg && <Alert tone="success">{msg}</Alert>}
+          {erro && <Alert tone="error">{erro}</Alert>}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => preset(TODOS_OS_DIAS)}
+            >
+              Qualquer dia
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => preset(DIAS_UTEIS)}
+            >
+              Só dias úteis (seg–sex)
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => preset(FIM_DE_SEMANA)}
+            >
+              Só fim de semana
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-800">
+            {DIAS_SEMANA.map(({ key, label }) => (
+              <label key={key} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
+                  {...register(key)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
+          <Field
+            label="Evitar os últimos quantos dias do mês? (opcional)"
+            htmlFor="disp-fim-mes"
+            hint="Deixe em branco se não tem essa restrição — ex.: 5 evita ser designado nos últimos 5 dias de cada mês."
+          >
+            <Input
+              id="disp-fim-mes"
+              type="number"
+              min={0}
+              max={15}
+              {...register('disp_evita_ultimos_dias_mes')}
+            />
+          </Field>
+
+          <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
+            Salvar
+          </Button>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function AusenciasCard({ membroId }: { membroId: string }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['ausencias', membroId],
+    queryFn: () => listAusencias(membroId),
+  });
+  const [inicio, setInicio] = useState('');
+  const [fim, setFim] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['ausencias', membroId] });
+
+  const criar = useMutation({
+    mutationFn: () => criarAusencia(membroId, inicio, fim),
+    onSuccess: () => {
+      setInicio('');
+      setFim('');
+      void invalidate();
+    },
+    onError: (e) => setErro(e instanceof Error ? e.message : 'Erro ao salvar ausência.'),
+  });
+
+  const excluir = useMutation({
+    mutationFn: (id: string) => excluirAusencia(id),
+    onSuccess: () => void invalidate(),
+  });
+
+  function adicionar() {
+    setErro(null);
+    if (!inicio || !fim) return setErro('Informe início e fim.');
+    if (fim < inicio) return setErro('O fim precisa ser depois do início.');
+    criar.mutate();
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Ausências</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Nesses períodos você não recebe casos por transferência nem é designado pra plantão.
+        </p>
+      </CardHeader>
+      <CardBody>
+        <div className="space-y-4">
+          {erro && <Alert tone="error">{erro}</Alert>}
+
+          {isLoading ? (
+            <div className="flex justify-center py-4 text-gray-400">
+              <Spinner className="size-5" />
+            </div>
+          ) : !data?.length ? (
+            <p className="text-sm text-gray-500">Nenhuma ausência registrada.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {data.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span className="text-gray-800">
+                    {formatDateOnly(a.inicio)} até {formatDateOnly(a.fim)}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                    onClick={() => excluir.mutate(a.id)}
+                    disabled={excluir.isPending}
+                  >
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <Field label="Início" htmlFor="aus-inicio">
+              <Input
+                id="aus-inicio"
+                type="date"
+                value={inicio}
+                onChange={(e) => setInicio(e.target.value)}
+              />
+            </Field>
+            <Field label="Fim" htmlFor="aus-fim">
+              <Input id="aus-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
+            </Field>
+            <Button type="button" onClick={adicionar} loading={criar.isPending}>
+              Adicionar
+            </Button>
+          </div>
+        </div>
       </CardBody>
     </Card>
   );

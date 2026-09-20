@@ -41,6 +41,14 @@ export type MembroRow = {
   ult_acesso: string | null;
   aprovado_por: string | null;
   aprovado_em: string | null;
+  disp_seg: boolean;
+  disp_ter: boolean;
+  disp_qua: boolean;
+  disp_qui: boolean;
+  disp_sex: boolean;
+  disp_sab: boolean;
+  disp_dom: boolean;
+  disp_evita_ultimos_dias_mes: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -48,6 +56,17 @@ export type MembroRow = {
 export type MembroInsert = Partial<MembroRow> &
   Pick<MembroRow, 'id' | 'nome' | 'email'>;
 export type MembroUpdate = Partial<Omit<MembroRow, 'id' | 'created_at'>>;
+
+/** Período em que o membro não pode receber transferência de caso nem ser designado pra plantão. */
+export type MembroAusenciaRow = {
+  id: string;
+  membro_id: string;
+  inicio: string;
+  fim: string;
+  created_at: string;
+};
+export type MembroAusenciaInsert = Omit<MembroAusenciaRow, 'id' | 'created_at'> &
+  Partial<Pick<MembroAusenciaRow, 'id' | 'created_at'>>;
 
 export type MembroFuncaoRow = {
   membro_id: string;
@@ -380,6 +399,12 @@ export type Database = {
         Row: MembroEspecialidadeRow;
         Insert: MembroEspecialidadeInsert;
         Update: Partial<MembroEspecialidadeRow>;
+        Relationships: [];
+      };
+      membro_ausencias: {
+        Row: MembroAusenciaRow;
+        Insert: MembroAusenciaInsert;
+        Update: Partial<MembroAusenciaRow>;
         Relationships: [];
       };
       escalas: {

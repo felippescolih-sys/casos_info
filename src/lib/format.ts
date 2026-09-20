@@ -7,6 +7,14 @@ export function formatDate(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '—' : dateFmt.format(d);
 }
 
+/** Pra colunas `date` (sem hora, ex.: "2026-09-20") — evita o off-by-one de `new Date()`
+ * reinterpretando a meia-noite UTC no fuso local (BR fica sempre atrás de UTC). */
+export function formatDateOnly(dateOnly: string | null | undefined): string {
+  if (!dateOnly) return '—';
+  const [y, m, d] = dateOnly.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : '—';
+}
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
