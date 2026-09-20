@@ -493,6 +493,10 @@ export type Database = {
         Args: { _membro_id: string; _inicio: string; _fim: string };
         Returns: boolean;
       };
+      membros_por_area: {
+        Args: { _area: Area };
+        Returns: { id: string; nome: string }[];
+      };
     };
     Enums: {
       member_status: MemberStatus;

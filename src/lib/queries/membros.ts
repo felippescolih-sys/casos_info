@@ -24,18 +24,13 @@ export interface MembroOpcao {
   nome: string;
 }
 
-type MembroFuncaoComMembro = { membro: MembroOpcao };
-
-/** Só membros ativos com função na área COLIH — usado no picker de escala de plantão. */
+/** Só membros ativos com função na área COLIH — usado no picker de escala de plantão.
+ * Via RPC (não lendo membro_funcoes direto): a RLS de lá só libera a própria linha ou
+ * gestor, e qualquer membro ativo precisa conseguir montar esse picker. */
 export async function listMembrosColihAtivos(): Promise<MembroOpcao[]> {
-  const { data, error } = await supabase
-    .from('membro_funcoes')
-    .select('membro:membros!inner(id, nome, status)')
-    .eq('area', 'colih')
-    .eq('membro.status', 'ativo');
+  const { data, error } = await supabase.rpc('membros_por_area', { _area: 'colih' });
   if (error) throw error;
-  const rows = (data ?? []) as unknown as MembroFuncaoComMembro[];
-  return rows.map((r) => r.membro).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  return data ?? [];
 }
 
 /** Confere no banco (mesma regra que bloqueia ao salvar) se o membro está disponível
