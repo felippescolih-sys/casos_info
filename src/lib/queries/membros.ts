@@ -24,15 +24,34 @@ export interface MembroOpcao {
   nome: string;
 }
 
-/** Lista simples de membros ativos, pra dropdowns de seleção (escala, transferência…). */
-export async function listMembrosAtivos(): Promise<MembroOpcao[]> {
+type MembroFuncaoComMembro = { membro: MembroOpcao };
+
+/** Só membros ativos com função na área COLIH — usado no picker de escala de plantão. */
+export async function listMembrosColihAtivos(): Promise<MembroOpcao[]> {
   const { data, error } = await supabase
-    .from('membros')
-    .select('id, nome')
-    .eq('status', 'ativo')
-    .order('nome');
+    .from('membro_funcoes')
+    .select('membro:membros!inner(id, nome, status)')
+    .eq('area', 'colih')
+    .eq('membro.status', 'ativo');
   if (error) throw error;
-  return data ?? [];
+  const rows = (data ?? []) as unknown as MembroFuncaoComMembro[];
+  return rows.map((r) => r.membro).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+/** Confere no banco (mesma regra que bloqueia ao salvar) se o membro está disponível
+ * pra plantão no período — ausência registrada + dias da semana + regra de fim de mês. */
+export async function membroDisponivelPlantao(
+  membroId: string,
+  inicio: string,
+  fim: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('membro_disponivel_plantao', {
+    _membro_id: membroId,
+    _inicio: inicio,
+    _fim: fim,
+  });
+  if (error) throw error;
+  return data ?? true;
 }
 
 // `membro_funcoes` tem 2 FKs pra `membros` (membro_id e criado_por) — precisa

@@ -489,6 +489,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { nome: string; total: number }[];
       };
+      membro_disponivel_plantao: {
+        Args: { _membro_id: string; _inicio: string; _fim: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       member_status: MemberStatus;

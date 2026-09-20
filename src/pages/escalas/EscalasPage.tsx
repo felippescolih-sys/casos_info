@@ -10,7 +10,7 @@ import {
   listEscalas,
   type EscalaComNomes,
 } from '@/lib/queries/escalas';
-import { listMembrosAtivos } from '@/lib/queries/membros';
+import { listMembrosColihAtivos, membroDisponivelPlantao } from '@/lib/queries/membros';
 import { formatDateTime } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -165,11 +165,17 @@ function EscalaFormDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const { data: membros } = useQuery({ queryKey: ['membros-ativos'], queryFn: listMembrosAtivos });
+  const { data: membros } = useQuery({
+    queryKey: ['membros-colih-ativos'],
+    queryFn: listMembrosColihAtivos,
+  });
   const [erro, setErro] = useState<string | null>(null);
+  const [avisoResponsavel, setAvisoResponsavel] = useState<string | undefined>(undefined);
+  const [avisoAjudante, setAvisoAjudante] = useState<string | undefined>(undefined);
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -186,6 +192,44 @@ function EscalaFormDialog({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const membroId = watch('membro_id');
+  const ajudanteId = watch('ajudante_id');
+  const inicio = watch('inicio');
+  const fim = watch('fim');
+
+  useEffect(() => {
+    const inicioIso = inicio ? new Date(inicio).toISOString() : null;
+    const fimIso = fim ? new Date(fim).toISOString() : null;
+    if (!inicioIso || !fimIso || new Date(fimIso) <= new Date(inicioIso)) {
+      setAvisoResponsavel(undefined);
+      setAvisoAjudante(undefined);
+      return;
+    }
+
+    const AVISO = 'Indisponível nesse período (ausência registrada ou fora dos dias que pode atender plantão).';
+    let cancelado = false;
+    const timer = setTimeout(() => {
+      if (membroId) {
+        membroDisponivelPlantao(membroId, inicioIso, fimIso)
+          .then((ok) => !cancelado && setAvisoResponsavel(ok ? undefined : AVISO))
+          .catch(() => !cancelado && setAvisoResponsavel(undefined));
+      } else {
+        setAvisoResponsavel(undefined);
+      }
+      if (ajudanteId) {
+        membroDisponivelPlantao(ajudanteId, inicioIso, fimIso)
+          .then((ok) => !cancelado && setAvisoAjudante(ok ? undefined : AVISO))
+          .catch(() => !cancelado && setAvisoAjudante(undefined));
+      } else {
+        setAvisoAjudante(undefined);
+      }
+    }, 400);
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [membroId, ajudanteId, inicio, fim]);
 
   async function onSubmit(values: Form) {
     setErro(null);
@@ -216,7 +260,12 @@ function EscalaFormDialog({
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {erro && <Alert tone="error">{erro}</Alert>}
-          <Field label="Responsável" htmlFor="membro_id" error={errors.membro_id?.message}>
+          <Field
+            label="Responsável"
+            htmlFor="membro_id"
+            error={errors.membro_id?.message}
+            warning={avisoResponsavel}
+          >
             <Select id="membro_id" {...register('membro_id')}>
               <option value="">Escolha o membro…</option>
               {(membros ?? []).map((m) => (
@@ -226,7 +275,7 @@ function EscalaFormDialog({
               ))}
             </Select>
           </Field>
-          <Field label="Ajudante (opcional)" htmlFor="ajudante_id">
+          <Field label="Ajudante (opcional)" htmlFor="ajudante_id" warning={avisoAjudante}>
             <Select id="ajudante_id" {...register('ajudante_id')}>
               <option value="">— sem ajudante</option>
               {(membros ?? []).map((m) => (
