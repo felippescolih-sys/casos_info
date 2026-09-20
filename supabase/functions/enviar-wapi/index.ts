@@ -103,22 +103,23 @@ async function checarEscalas() {
   const HORA = 3_600_000;
   const MIN = 60_000;
 
-  const [{ data: lembretes }, { data: iniciando }] = await Promise.all([
-    supabase
-      .from('escalas')
-      .select('id, membro_id, ajudante_id, inicio')
-      .eq('tipo', 'plantao')
-      .is('lembrete_enviado_em', null)
-      .gte('inicio', iso(27.75 * HORA))
-      .lte('inicio', iso(28.25 * HORA)),
-    supabase
-      .from('escalas')
-      .select('id, membro_id, ajudante_id, inicio')
-      .eq('tipo', 'plantao')
-      .is('inicio_enviado_em', null)
-      .gte('inicio', iso(-5 * MIN))
-      .lte('inicio', iso(15 * MIN)),
-  ]);
+  const [{ data: lembretes, error: errLembretes }, { data: iniciando, error: errIniciando }] =
+    await Promise.all([
+      supabase
+        .from('escalas')
+        .select('id, membro_id, ajudante_id, inicio')
+        .is('lembrete_enviado_em', null)
+        .gte('inicio', iso(27.75 * HORA))
+        .lte('inicio', iso(28.25 * HORA)),
+      supabase
+        .from('escalas')
+        .select('id, membro_id, ajudante_id, inicio')
+        .is('inicio_enviado_em', null)
+        .gte('inicio', iso(-5 * MIN))
+        .lte('inicio', iso(15 * MIN)),
+    ]);
+  if (errLembretes) console.error('checarEscalas: erro ao buscar lembretes', errLembretes);
+  if (errIniciando) console.error('checarEscalas: erro ao buscar início', errIniciando);
 
   const idsMembros = new Set<string>();
   for (const e of [...(lembretes ?? []), ...(iniciando ?? [])]) {
