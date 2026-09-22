@@ -9,13 +9,14 @@ import {
   excluirHospital,
   listHospitais,
 } from '@/lib/queries/hospitais';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import type { HospitalRow } from '@/types/database';
 
 const schema = z.object({
@@ -128,69 +129,62 @@ export function HospitaisPage() {
 
       {msg && <Alert tone="success">{msg}</Alert>}
 
-      {editing !== undefined && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-medium text-gray-900">
-              {editing ? `Editar ${editing.nome}` : 'Novo hospital'}
-            </h2>
-          </CardHeader>
-          <CardBody>
-            <form
-              onSubmit={handleSubmit((v) => salvar.mutate(v))}
-              className="space-y-4"
-            >
-              {salvar.error && <Alert tone="error">{(salvar.error as Error).message}</Alert>}
+      <Modal
+        open={editing !== undefined}
+        onClose={() => setEditing(undefined)}
+        title={editing ? `Editar ${editing.nome}` : 'Novo hospital'}
+        maxWidthClassName="max-w-xl"
+      >
+        <form onSubmit={handleSubmit((v) => salvar.mutate(v))} className="space-y-4">
+          {salvar.error && <Alert tone="error">{(salvar.error as Error).message}</Alert>}
 
-              <Field label="Nome do hospital" htmlFor="nome" error={errors.nome?.message}>
-                <Input id="nome" {...register('nome')} />
-              </Field>
+          <Field label="Nome do hospital" htmlFor="nome" error={errors.nome?.message}>
+            <Input id="nome" {...register('nome')} />
+          </Field>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Endereço" htmlFor="endereco">
-                  <Input id="endereco" {...register('endereco')} />
-                </Field>
-                <Field label="Bairro" htmlFor="bairro">
-                  <Input id="bairro" {...register('bairro')} />
-                </Field>
-                <Field label="Cidade" htmlFor="cidade">
-                  <Input id="cidade" {...register('cidade')} />
-                </Field>
-                <Field label="Telefone" htmlFor="telefone">
-                  <Input id="telefone" inputMode="tel" {...register('telefone')} />
-                </Field>
-                <Field label="Telefone UTI" htmlFor="fone_uti">
-                  <Input id="fone_uti" inputMode="tel" {...register('fone_uti')} />
-                </Field>
-                <Field label="E-mail" htmlFor="email">
-                  <Input id="email" type="email" {...register('email')} />
-                </Field>
-                <Field label="Website" htmlFor="website">
-                  <Input id="website" {...register('website')} />
-                </Field>
-              </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Endereço" htmlFor="endereco">
+              <Input id="endereco" {...register('endereco')} />
+            </Field>
+            <Field label="Bairro" htmlFor="bairro">
+              <Input id="bairro" {...register('bairro')} />
+            </Field>
+            <Field label="Cidade" htmlFor="cidade">
+              <Input id="cidade" {...register('cidade')} />
+            </Field>
+            <Field label="Telefone" htmlFor="telefone">
+              <Input id="telefone" inputMode="tel" {...register('telefone')} />
+            </Field>
+            <Field label="Telefone UTI" htmlFor="fone_uti">
+              <Input id="fone_uti" inputMode="tel" {...register('fone_uti')} />
+            </Field>
+            <Field label="E-mail" htmlFor="email">
+              <Input id="email" type="email" {...register('email')} />
+            </Field>
+            <Field label="Website" htmlFor="website">
+              <Input id="website" {...register('website')} />
+            </Field>
+          </div>
 
-              <label className="flex items-center gap-2 text-sm text-gray-800">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
-                  {...register('ativo')}
-                />
-                Ativo (aparece na busca do cadastro de casos)
-              </label>
+          <label className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              type="checkbox"
+              className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
+              {...register('ativo')}
+            />
+            Ativo (aparece na busca do cadastro de casos)
+          </label>
 
-              <div className="flex gap-2">
-                <Button type="submit" loading={salvar.isPending} disabled={!isDirty}>
-                  Salvar
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setEditing(undefined)}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      )}
+          <div className="flex gap-2">
+            <Button type="submit" loading={salvar.isPending} disabled={!isDirty}>
+              Salvar
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setEditing(undefined)}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <Input
         placeholder="Buscar por nome, cidade ou bairro"
