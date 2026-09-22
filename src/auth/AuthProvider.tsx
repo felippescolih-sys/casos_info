@@ -21,9 +21,13 @@ import type {
 export interface Permissions {
   funcoes: MembroFuncaoRow[];
   temFuncao: (area: Area, nivel?: FuncaoNivel) => boolean;
+  /** SuperAdmin: função na área geral (nível 'superadmin'), acesso total ao sistema. */
   isAdminGeral: boolean;
   /** Pode ver/gerenciar/aprovar membros: qualquer função na área geral. */
   gerenciaMembros: boolean;
+  /** Admin ou ajudante daquela área específica (ex.: coordenador da lista de
+   * médicos), ou SuperAdmin — que tem acesso a tudo independente de área. */
+  adminDeArea: (area: Area) => boolean;
 }
 
 interface AuthContextValue extends Permissions {
@@ -109,6 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [funcoes],
   );
 
+  const isAdminGeral = temFuncao('geral', 'superadmin');
+  const adminDeArea = useCallback(
+    (area: Area) => isAdminGeral || temFuncao(area, 'admin') || temFuncao(area, 'ajudante'),
+    [isAdminGeral, temFuncao],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -119,10 +129,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       funcoes,
       temFuncao,
-      isAdminGeral: temFuncao('geral', 'admin'),
+      isAdminGeral,
       gerenciaMembros: temFuncao('geral'),
+      adminDeArea,
     }),
-    [session, membro, especialidades, loadingMembro, refreshMembro, signOut, funcoes, temFuncao],
+    [
+      session,
+      membro,
+      especialidades,
+      loadingMembro,
+      refreshMembro,
+      signOut,
+      funcoes,
+      temFuncao,
+      isAdminGeral,
+      adminDeArea,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

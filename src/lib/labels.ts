@@ -30,9 +30,18 @@ export function funcaoAreaLabel(area: Area, especialidades?: AreaEspecialidade[]
 }
 
 export const nivelLabel: Record<FuncaoNivel, string> = {
-  admin: 'Admin',
+  usuario: 'Usuário',
   ajudante: 'Ajudante',
+  admin: 'Admin',
+  superadmin: 'SuperAdmin',
 };
+
+/** Níveis atribuíveis em cada área: 'geral' só tem SuperAdmin (presidência/secretaria
+ * e ajudantes — todos com acesso total); as demais áreas vão de Usuário (associação de
+ * base, ex. "Membro COLIH") a Ajudante/Admin (coordenação daquela área). */
+export function nivelOpcoesDe(area: Area): FuncaoNivel[] {
+  return area === 'geral' ? ['superadmin'] : ['usuario', 'ajudante', 'admin'];
+}
 
 export const statusLabel: Record<MemberStatus, string> = {
   pendente: 'Pendente',

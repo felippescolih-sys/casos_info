@@ -132,7 +132,8 @@ function Estrelas({ rating }: { rating: number | null }) {
 
 export function ColaboradoresTab() {
   const qc = useQueryClient();
-  const { isAdminGeral } = useAuth();
+  const { adminDeArea } = useAuth();
+  const podeGerenciar = adminDeArea('medicos');
   const [search, setSearch] = useState('');
   const [especialidadeId, setEspecialidadeId] = useState('todas');
   const [selecionado, setSelecionado] = useState<MedicoComEspecialidade | null>(null);
@@ -224,7 +225,7 @@ export function ColaboradoresTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">Médicos que já colaboram com a COLIH.</p>
-        {isAdminGeral && editing === undefined && (
+        {podeGerenciar && editing === undefined && (
           <Button size="sm" onClick={() => setEditing(null)}>
             Novo colaborador
           </Button>
@@ -233,7 +234,7 @@ export function ColaboradoresTab() {
 
       {msg && <Alert tone="success">{msg}</Alert>}
 
-      {isAdminGeral && editing !== undefined && (
+      {podeGerenciar && editing !== undefined && (
         <MedicoForm
           titulo={editing ? `Editar ${editing.nome}` : 'Novo colaborador'}
           register={register}
@@ -306,7 +307,7 @@ export function ColaboradoresTab() {
         <DetalheModal
           medico={selecionado}
           totalCasos={totalCasosDe(totalCasosQ.data ?? new Map(), selecionado.nome)}
-          podeEditar={isAdminGeral}
+          podeEditar={podeGerenciar}
           onClose={() => setSelecionado(null)}
           onEditar={() => {
             setEditing(selecionado);

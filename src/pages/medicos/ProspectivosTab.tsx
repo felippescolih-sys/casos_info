@@ -35,7 +35,8 @@ const nil = (s: string | undefined) => (s?.trim() ? s.trim() : null);
 
 export function ProspectivosTab() {
   const qc = useQueryClient();
-  const { isAdminGeral } = useAuth();
+  const { adminDeArea } = useAuth();
+  const podeGerenciar = adminDeArea('medicos');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<MedicoGeralComEspecialidade | null | undefined>(
     undefined,
@@ -200,7 +201,7 @@ export function ProspectivosTab() {
                       {totalCasosDe(totalCasosQ.data ?? new Map(), m.nome)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {isAdminGeral && (
+                      {podeGerenciar && (
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="sm" onClick={() => setEditing(m)}>
                             Editar

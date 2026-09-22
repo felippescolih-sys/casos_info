@@ -20,7 +20,10 @@ export type Area =
   | 'facilitadores'
   | 'medicos';
 
-export type FuncaoNivel = 'admin' | 'ajudante';
+/** 'usuario' = associação de base numa área (ex.: "Membro COLIH", "Membro GVP"),
+ * sem privilégio de admin naquela área. 'superadmin' só existe na área 'geral'
+ * (presidência/secretaria e ajudantes): acesso total ao sistema. */
+export type FuncaoNivel = 'usuario' | 'ajudante' | 'admin' | 'superadmin';
 
 export type MembroRow = {
   id: string;

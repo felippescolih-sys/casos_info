@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { definirEspecialidade, definirFuncao, getMembro, updateMembro } from '@/lib/queries/membros';
 import { useAuth } from '@/auth/AuthProvider';
-import { AREAS, funcaoAreaLabel } from '@/lib/labels';
+import { AREAS, funcaoAreaLabel, nivelLabel, nivelOpcoesDe } from '@/lib/labels';
 import { EspecialidadesCheckboxes } from '@/components/EspecialidadesCheckboxes';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
@@ -281,8 +281,11 @@ function FuncoesCard({
                 onChange={(e) => alterar(area, e.target.value as FuncaoNivel | '')}
               >
                 <option value="">— sem função</option>
-                <option value="ajudante">Ajudante</option>
-                <option value="admin">Admin</option>
+                {nivelOpcoesDe(area).map((nivel) => (
+                  <option key={nivel} value={nivel}>
+                    {nivelLabel[nivel]}
+                  </option>
+                ))}
               </Select>
             </div>
           ))}
