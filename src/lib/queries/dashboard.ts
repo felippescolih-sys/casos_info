@@ -102,3 +102,15 @@ export async function getCasosEmTransferencia(limite = 10): Promise<CasoEmTransf
       : null,
   }));
 }
+
+export async function getMinhasTransferenciasPendentes(
+  membroId: string,
+): Promise<CasoResumoRow[]> {
+  const { data, error } = await supabase
+    .from('casos_resumo')
+    .select('*')
+    .eq('transferencia_pendente_para', membroId)
+    .order('transferencia_pendente_em', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

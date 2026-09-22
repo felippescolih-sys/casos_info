@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
 import { getEscalaAtual } from '@/lib/queries/escalas';
+import { aceitarTransferencia, recusarTransferencia } from '@/lib/queries/casos';
 import {
   getCasosEmTransferencia,
   getCasosPorEspecialidade,
   getCasosPorHospital,
   getCasosStats,
+  getMinhasTransferenciasPendentes,
   getUltimosCasos,
 } from '@/lib/queries/dashboard';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
 
 export function DashboardPage() {
   const { membro } = useAuth();
@@ -26,6 +30,8 @@ export function DashboardPage() {
         </h1>
         <p className="text-sm text-gray-500">Bem-vindo ao Casos Info.</p>
       </div>
+
+      <TransferenciasPendentesBanner />
 
       <EscalaBanner />
 
@@ -54,6 +60,78 @@ export function DashboardPage() {
       <TransferenciasCard />
 
       <HospitaisCard />
+    </div>
+  );
+}
+
+function TransferenciasPendentesBanner() {
+  const { membro } = useAuth();
+  const qc = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ['minhas-transferencias-pendentes', membro?.id],
+    queryFn: () => getMinhasTransferenciasPendentes(membro!.id),
+    enabled: !!membro?.id,
+  });
+
+  const onChanged = () => {
+    void qc.invalidateQueries({ queryKey: ['minhas-transferencias-pendentes'] });
+    void qc.invalidateQueries({ queryKey: ['casos-em-transferencia'] });
+    void qc.invalidateQueries({ queryKey: ['casos'] });
+  };
+
+  const aceitar = useMutation({
+    mutationFn: (casoId: string) => aceitarTransferencia(casoId),
+    onSuccess: onChanged,
+  });
+  const recusar = useMutation({
+    mutationFn: (casoId: string) => recusarTransferencia(casoId),
+    onSuccess: onChanged,
+  });
+
+  if (!data?.length) return null;
+
+  return (
+    <div className="space-y-2">
+      {data.map((c) => (
+        <div
+          key={c.id}
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-amber-50 px-4 py-3 text-sm ring-1 ring-inset ring-amber-200"
+        >
+          <p className="text-amber-900">
+            Caso transferido para você:{' '}
+            <Link to={`/casos/${c.id}`} className="font-semibold underline">
+              {c.paciente_nome ?? c.id_caso}
+            </Link>
+            {c.morbidade && <span> · {c.morbidade}</span>}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              loading={aceitar.isPending && aceitar.variables === c.id}
+              onClick={() => aceitar.mutate(c.id)}
+            >
+              Aceitar
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={recusar.isPending && recusar.variables === c.id}
+              onClick={() => recusar.mutate(c.id)}
+            >
+              Recusar
+            </Button>
+          </div>
+          {(aceitar.error || recusar.error) &&
+            (aceitar.variables === c.id || recusar.variables === c.id) && (
+              <div className="w-full">
+                <Alert tone="error">
+                  {((aceitar.error ?? recusar.error) as Error).message}
+                </Alert>
+              </div>
+            )}
+        </div>
+      ))}
     </div>
   );
 }
