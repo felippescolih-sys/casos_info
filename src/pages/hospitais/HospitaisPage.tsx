@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
+import { useAuth } from '@/auth/AuthProvider';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
@@ -47,6 +48,9 @@ const EMPTY: Form = {
 const nil = (s: string | undefined) => (s?.trim() ? s.trim() : null);
 
 export function HospitaisPage() {
+  // Membro COLIH entra aqui para consultar o hospital de um caso, não para manter o
+  // cadastro. A RLS já recusa a escrita; isto evita oferecer botão que só daria erro.
+  const { isAdminGeral } = useAuth();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<HospitalRow | null | undefined>(undefined); // undefined = form fechado
@@ -120,7 +124,7 @@ export function HospitaisPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Hospitais</h1>
-        {editing === undefined && (
+        {isAdminGeral && editing === undefined && (
           <Button size="sm" onClick={() => setEditing(null)}>
             Novo hospital
           </Button>
@@ -211,7 +215,7 @@ export function HospitaisPage() {
                   <th className="px-4 py-3">Cidade / Bairro</th>
                   <th className="px-4 py-3">Telefone</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3" />
+                  {isAdminGeral && <th className="px-4 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -229,16 +233,18 @@ export function HospitaisPage() {
                         <span className="text-gray-400">Inativo</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(h)}>
-                          Editar
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setToDelete(h)}>
-                          Excluir
-                        </Button>
-                      </div>
-                    </td>
+                    {isAdminGeral && (
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(h)}>
+                            Editar
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setToDelete(h)}>
+                            Excluir
+                          </Button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

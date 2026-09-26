@@ -24,9 +24,9 @@ import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 import { MedicosPage } from '@/pages/medicos/MedicosPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
-const canManageHospitais = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
-// A escala é consulta de trabalho pra quem é da COLIH; quem edita é filtrado dentro da página.
-const canSeeEscalas = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
+// Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
+// Em todas elas quem pode editar é filtrado dentro da própria página.
+const canSeeColih = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
 
 export default function App() {
   return (
@@ -58,7 +58,7 @@ export default function App() {
         <Route
           path="/escalas"
           element={
-            <RequireAuth canAccess={canSeeEscalas}>
+            <RequireAuth canAccess={canSeeColih}>
               <EscalasPage />
             </RequireAuth>
           }
@@ -66,7 +66,7 @@ export default function App() {
         <Route
           path="/membros"
           element={
-            <RequireAuth canAccess={canManageMembers}>
+            <RequireAuth canAccess={canSeeColih}>
               <MembersListPage />
             </RequireAuth>
           }
@@ -90,7 +90,7 @@ export default function App() {
         <Route
           path="/hospitais"
           element={
-            <RequireAuth canAccess={canManageHospitais}>
+            <RequireAuth canAccess={canSeeColih}>
               <HospitaisPage />
             </RequireAuth>
           }

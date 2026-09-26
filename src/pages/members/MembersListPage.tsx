@@ -8,6 +8,7 @@ import { Input, Select } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { FuncaoBadge, StatusBadge } from '@/components/ui/Badge';
+import { useAuth } from '@/auth/AuthProvider';
 
 export function MembersListPage() {
   const [filter, setFilter] = useState<MembrosFilter>({
@@ -20,16 +21,22 @@ export function MembersListPage() {
     queryFn: () => listMembros(filter),
   });
 
+  // Membro COLIH usa esta tela como lista de contatos. Abrir a ficha é edição e
+  // continua restrito — sem isto o nome viraria um link que cai em /403.
+  const { gerenciaMembros } = useAuth();
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Membros</h1>
-        <Link
-          to="/membros/aprovacoes"
-          className="text-sm font-medium text-brand-700 hover:underline"
-        >
-          Ver pendentes de aprovação
-        </Link>
+        {gerenciaMembros && (
+          <Link
+            to="/membros/aprovacoes"
+            className="text-sm font-medium text-brand-700 hover:underline"
+          >
+            Ver pendentes de aprovação
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_11rem_11rem]">
@@ -88,12 +95,16 @@ export function MembersListPage() {
                 {data.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <Link
-                        to={`/membros/${m.id}`}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
-                        {m.nome}
-                      </Link>
+                      {gerenciaMembros ? (
+                        <Link
+                          to={`/membros/${m.id}`}
+                          className="font-medium text-brand-700 hover:underline"
+                        >
+                          {m.nome}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-gray-900">{m.nome}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{m.email}</td>
                     <td className="px-4 py-3">
