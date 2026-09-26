@@ -120,6 +120,104 @@ async function reivindicar(
   return (data ?? []).length > 0;
 }
 
+type EscalaSnapshot = {
+  membro_id: string;
+  ajudante_id: string | null;
+  inicio: string;
+  fim: string;
+};
+
+type AcaoEscala = 'criada' | 'editada' | 'excluida';
+
+// Avisa quem está (ou estava) na escala sobre designação, remarcação, troca de
+// plantonista e cancelamento. Uma troca manda mensagens diferentes para os dois
+// lados: quem saiu precisa saber que saiu tanto quanto quem entrou.
+async function notificarEscalaAlterada(
+  acao: AcaoEscala,
+  antes: EscalaSnapshot | null,
+  depois: EscalaSnapshot | null,
+  autorId: string | null,
+) {
+  const papel = (s: EscalaSnapshot | null, id: string) =>
+    s?.membro_id === id ? 'responsável' : s?.ajudante_id === id ? 'ajudante' : null;
+
+  const afetados = new Set<string>();
+  for (const s of [antes, depois]) {
+    if (!s) continue;
+    afetados.add(s.membro_id);
+    if (s.ajudante_id) afetados.add(s.ajudante_id);
+  }
+  if (!afetados.size) return;
+
+  const ids = [...afetados];
+  if (autorId && !afetados.has(autorId)) ids.push(autorId);
+  const { data: membros, error } = await supabase
+    .from('membros')
+    .select('id, nome, tel_zap')
+    .in('id', ids);
+  if (error) {
+    console.error('notificarEscalaAlterada: erro ao buscar membros', error);
+    return;
+  }
+  const porId = new Map((membros ?? []).map((m) => [m.id, m]));
+  const autor = autorId ? porId.get(autorId) : undefined;
+
+  const periodo = (s: EscalaSnapshot) => `${fmtDataHora(s.inicio)} a ${fmtDataHora(s.fim)}`;
+  const nomeDe = (id: string | null | undefined) =>
+    id ? (porId.get(id)?.nome ?? 'outro membro') : 'ninguém';
+
+  for (const id of afetados) {
+    const m = porId.get(id);
+    if (!m) continue;
+    const pAntes = papel(antes, id);
+    const pDepois = papel(depois, id);
+    let msg: string | null = null;
+
+    if (acao === 'criada' && depois && pDepois) {
+      msg =
+        `Olá, ${m.nome}! Você foi designado(a) como ${pDepois} do plantão de emergência ` +
+        `de ${periodo(depois)}.`;
+    } else if (acao === 'excluida' && antes && pAntes) {
+      msg =
+        `Olá, ${m.nome}! O plantão de emergência de ${periodo(antes)}, em que você estava ` +
+        `como ${pAntes}, foi cancelado.`;
+    } else if (acao === 'editada' && antes && depois) {
+      if (pAntes && !pDepois) {
+        msg =
+          `Olá, ${m.nome}! Você foi retirado(a) do plantão de emergência de ${periodo(antes)} — ` +
+          `não é mais o(a) ${pAntes}.`;
+      } else if (!pAntes && pDepois) {
+        msg =
+          `Olá, ${m.nome}! Você assumiu o plantão de emergência de ${periodo(depois)} ` +
+          `como ${pDepois}.`;
+      } else if (pAntes && pDepois) {
+        const mudancas: string[] = [];
+        if (antes.inicio !== depois.inicio || antes.fim !== depois.fim) {
+          mudancas.push(`horário: era ${periodo(antes)}, agora é ${periodo(depois)}`);
+        }
+        if (pAntes !== pDepois) {
+          mudancas.push(`sua função: era ${pAntes}, agora é ${pDepois}`);
+        }
+        const parceiroAntes = pAntes === 'responsável' ? antes.ajudante_id : antes.membro_id;
+        const parceiroDepois = pDepois === 'responsável' ? depois.ajudante_id : depois.membro_id;
+        if (parceiroAntes !== parceiroDepois) {
+          mudancas.push(`dupla: era ${nomeDe(parceiroAntes)}, agora é ${nomeDe(parceiroDepois)}`);
+        }
+        if (mudancas.length) {
+          msg =
+            `Olá, ${m.nome}! Seu plantão de emergência foi alterado:\n` +
+            mudancas.map((c) => `• ${c}`).join('\n');
+        }
+      }
+    }
+
+    if (!msg) continue;
+    // Quem mexeu não precisa ser avisado de que mexeu.
+    if (autor && autor.id !== id) msg += `\n\nAlteração feita por ${autor.nome}.`;
+    await enviarWhatsapp(m.tel_zap, msg);
+  }
+}
+
 async function checarEscalas() {
   const agora = new Date();
   const iso = (ms: number) => new Date(agora.getTime() + ms).toISOString();
@@ -188,7 +286,14 @@ Deno.serve(async (req) => {
     return new Response('unauthorized', { status: 401 });
   }
 
-  let body: { evento?: string; casoId?: string };
+  let body: {
+    evento?: string;
+    casoId?: string;
+    acao?: AcaoEscala;
+    antes?: EscalaSnapshot | null;
+    depois?: EscalaSnapshot | null;
+    autorId?: string | null;
+  };
   try {
     body = await req.json();
   } catch {
@@ -200,6 +305,13 @@ Deno.serve(async (req) => {
       await notificarTransferencia(body.casoId);
     } else if (body.evento === 'checar_escalas') {
       await checarEscalas();
+    } else if (body.evento === 'escala_alterada' && body.acao) {
+      await notificarEscalaAlterada(
+        body.acao,
+        body.antes ?? null,
+        body.depois ?? null,
+        body.autorId ?? null,
+      );
     } else {
       return new Response('evento desconhecido', { status: 400 });
     }
