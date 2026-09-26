@@ -52,6 +52,7 @@ export type MembroRow = {
   disp_sab: boolean;
   disp_dom: boolean;
   disp_evita_ultimos_dias_mes: number | null;
+  perfil_confirmado_em: string | null;
   created_at: string;
   updated_at: string;
 };

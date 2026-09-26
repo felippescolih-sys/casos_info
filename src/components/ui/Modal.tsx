@@ -6,6 +6,8 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   maxWidthClassName?: string;
+  /** false trava o modal aberto: sem X, sem Esc, sem clique fora. Para fluxo obrigatório. */
+  dismissible?: boolean;
 }
 
 export function Modal({
@@ -14,23 +16,28 @@ export function Modal({
   onClose,
   children,
   maxWidthClassName = 'max-w-lg',
+  dismissible = true,
 }: ModalProps) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dismissible) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        aria-label="Fechar"
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-      />
+      {dismissible ? (
+        <button
+          aria-label="Fechar"
+          className="absolute inset-0 bg-black/30"
+          onClick={onClose}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-black/40" />
+      )}
       <div
         className={`relative w-full ${maxWidthClassName} max-h-[90vh] overflow-y-auto rounded-lg bg-white p-5 shadow-xl`}
       >
@@ -39,6 +46,7 @@ export function Modal({
           <button
             type="button"
             aria-label="Fechar"
+            hidden={!dismissible}
             onClick={onClose}
             className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >

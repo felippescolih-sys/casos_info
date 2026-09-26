@@ -17,6 +17,13 @@ import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { AvatarUploader } from './AvatarUploader';
 import { avisoWhatsapp } from '@/lib/telefone';
+import {
+  DIAS_SEMANA,
+  DIAS_UTEIS,
+  FIM_DE_SEMANA,
+  TODOS_OS_DIAS,
+  type DiaSemanaKey,
+} from '@/lib/disponibilidade';
 import { formatDateOnly } from '@/lib/format';
 import type { AreaEspecialidade, MembroRow } from '@/types/database';
 
@@ -208,20 +215,6 @@ function PerfilCard({
     </Card>
   );
 }
-
-const DIAS_SEMANA = [
-  { key: 'disp_seg', label: 'Seg' },
-  { key: 'disp_ter', label: 'Ter' },
-  { key: 'disp_qua', label: 'Qua' },
-  { key: 'disp_qui', label: 'Qui' },
-  { key: 'disp_sex', label: 'Sex' },
-  { key: 'disp_sab', label: 'Sáb' },
-  { key: 'disp_dom', label: 'Dom' },
-] as const;
-type DiaSemanaKey = (typeof DIAS_SEMANA)[number]['key'];
-const TODOS_OS_DIAS = DIAS_SEMANA.map((d) => d.key);
-const DIAS_UTEIS: DiaSemanaKey[] = ['disp_seg', 'disp_ter', 'disp_qua', 'disp_qui', 'disp_sex'];
-const FIM_DE_SEMANA: DiaSemanaKey[] = ['disp_sab', 'disp_dom'];
 
 type DispForm = Record<DiaSemanaKey, boolean> & { disp_evita_ultimos_dias_mes: string };
 

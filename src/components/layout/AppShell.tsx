@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { cn } from '@/lib/cn';
+import { CompletarPerfilDialog } from '@/components/CompletarPerfilDialog';
 import { UserMenu } from './UserMenu';
 
 interface NavItem {
@@ -30,6 +31,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">
+      <CompletarPerfilDialog />
       {/* Sidebar */}
       <aside
         className={cn(
