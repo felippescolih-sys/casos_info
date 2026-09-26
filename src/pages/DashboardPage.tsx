@@ -194,13 +194,19 @@ function EspecialidadeCard() {
   });
 
   const porArea = new Map((data ?? []).map((d) => [d.area, d.total]));
+  // O `max` escala as barras. Antes o plantão entrava nesta conta mas não era
+  // desenhado, então todas as barras eram comparadas a um valor invisível e
+  // apareciam menores do que deveriam.
   const max = Math.max(1, ...(data ?? []).map((d) => d.total));
+  const totalGeral = (data ?? []).reduce((soma, d) => soma + d.total, 0);
 
   return (
     <Card>
       <CardHeader>
         <h2 className="font-medium text-gray-900">Casos por especialidade</h2>
-        <p className="text-xs text-gray-500">Últimos 6 meses</p>
+        <p className="text-xs text-gray-500">
+          Últimos 6 meses · {totalGeral} {totalGeral === 1 ? 'caso' : 'casos'}
+        </p>
       </CardHeader>
       <CardBody className="space-y-2.5">
         {isLoading ? (
@@ -208,7 +214,7 @@ function EspecialidadeCard() {
             <Spinner className="size-6" />
           </div>
         ) : (
-          AREAS_ESPECIALIDADE.filter((a) => a !== 'plantao').map((area) => {
+          AREAS_ESPECIALIDADE.map((area) => {
             const total = porArea.get(area) ?? 0;
             return (
               <div key={area} className="flex items-center gap-3 text-sm">
@@ -219,7 +225,9 @@ function EspecialidadeCard() {
                     style={{ width: `${(total / max) * 100}%` }}
                   />
                 </div>
-                <span className="w-8 text-right font-medium text-gray-800">{total}</span>
+                <span className="w-12 shrink-0 text-right font-medium tabular-nums text-gray-800">
+                  {total}
+                </span>
               </div>
             );
           })
@@ -239,6 +247,7 @@ function UltimosCasosCard() {
     <Card>
       <CardHeader>
         <h2 className="font-medium text-gray-900">Últimos casos registrados</h2>
+        <p className="text-xs text-gray-500">Somente casos em aberto</p>
       </CardHeader>
       <CardBody className="p-0">
         {isLoading ? (
@@ -246,7 +255,7 @@ function UltimosCasosCard() {
             <Spinner className="size-6" />
           </div>
         ) : !data?.length ? (
-          <p className="p-5 text-sm text-gray-500">Nenhum caso registrado ainda.</p>
+          <p className="p-5 text-sm text-gray-500">Nenhum caso em aberto.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
             {data.map((c) => (

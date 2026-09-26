@@ -47,10 +47,12 @@ export async function getCasosPorEspecialidade(meses = 6): Promise<Especialidade
   return data ?? [];
 }
 
+/** Só os casos em aberto: o painel serve para agir, e caso encerrado não pede ação. */
 export async function getUltimosCasos(limite = 8): Promise<CasoResumoRow[]> {
   const { data, error } = await supabase
     .from('casos_resumo')
     .select('*')
+    .eq('status', 'aberto')
     .order('created_at', { ascending: false })
     .limit(limite);
   if (error) throw error;
