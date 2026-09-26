@@ -97,6 +97,29 @@ async function notificarTransferencia(casoId: string) {
   }
 }
 
+// Carimba a escala ANTES de enviar. O update condicional (`is null`) é atômico no
+// Postgres: se duas varreduras se sobrepuserem, ou se a anterior tiver sido cortada
+// no meio do envio, só uma reivindica a escala e ninguém recebe a mensagem duas vezes.
+// O preço é o inverso — uma falha depois do carimbo perde aquele aviso — mas mensagem
+// repetida em massa no WhatsApp dos membros é pior do que um aviso perdido raro.
+async function reivindicar(
+  escalaId: string,
+  coluna: 'lembrete_enviado_em' | 'inicio_enviado_em',
+  agora: Date,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('escalas')
+    .update({ [coluna]: agora.toISOString() })
+    .eq('id', escalaId)
+    .is(coluna, null)
+    .select('id');
+  if (error) {
+    console.error(`reivindicar(${coluna}) falhou`, error);
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
 async function checarEscalas() {
   const agora = new Date();
   const iso = (ms: number) => new Date(agora.getTime() + ms).toISOString();
@@ -132,6 +155,7 @@ async function checarEscalas() {
   const membroPorId = new Map((membros ?? []).map((m) => [m.id, m]));
 
   for (const e of lembretes ?? []) {
+    if (!(await reivindicar(e.id, 'lembrete_enviado_em', agora))) continue;
     const quando = fmtDataHora(e.inicio);
     for (const id of [e.membro_id, e.ajudante_id].filter((v): v is string => !!v)) {
       const m = membroPorId.get(id);
@@ -142,10 +166,10 @@ async function checarEscalas() {
           `${quando} (daqui a ~28h). Qualquer impedimento, avise a coordenação com antecedência.`,
       );
     }
-    await supabase.from('escalas').update({ lembrete_enviado_em: agora.toISOString() }).eq('id', e.id);
   }
 
   for (const e of iniciando ?? []) {
+    if (!(await reivindicar(e.id, 'inicio_enviado_em', agora))) continue;
     const quando = fmtDataHora(e.inicio);
     for (const id of [e.membro_id, e.ajudante_id].filter((v): v is string => !!v)) {
       const m = membroPorId.get(id);
@@ -156,7 +180,6 @@ async function checarEscalas() {
           `Fique atento(a) aos chamados.`,
       );
     }
-    await supabase.from('escalas').update({ inicio_enviado_em: agora.toISOString() }).eq('id', e.id);
   }
 }
 
