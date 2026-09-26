@@ -156,6 +156,19 @@ function toLocalInput(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// O plantão padrão cobre o dia inteiro: começa 00:00 e termina 23:59. O input
+// datetime-local, quando está vazio e a pessoa escolhe uma data no calendário,
+// preenche a hora com a hora atual — o que obrigava a corrigir os dois campos
+// toda vez. Ao preencher pela primeira vez assumimos o horário padrão; depois
+// disso o campo é da pessoa e não mexemos mais.
+const HORA_INICIO = '00:00';
+const HORA_FIM = '23:59';
+
+function comHora(valor: string, hora: string): string {
+  const [data] = valor.split('T');
+  return data ? `${data}T${hora}` : valor;
+}
+
 function EscalaFormDialog({
   atual,
   onClose,
@@ -176,6 +189,8 @@ function EscalaFormDialog({
     register,
     handleSubmit,
     watch,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<Form>({
     resolver: zodResolver(schema),
@@ -192,6 +207,17 @@ function EscalaFormDialog({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // Só aplica o horário padrão quando o campo sai de vazio para preenchido, que é
+  // exatamente o momento em que o navegador injeta a hora atual. Quem depois ajustar
+  // a hora à mão não tem o valor sobrescrito.
+  function aoMudarData(campo: 'inicio' | 'fim', valor: string, padrao: string) {
+    const estavaVazio = !getValues(campo);
+    setValue(campo, estavaVazio && valor ? comHora(valor, padrao) : valor, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }
 
   const membroId = watch('membro_id');
   const ajudanteId = watch('ajudante_id');
@@ -287,10 +313,20 @@ function EscalaFormDialog({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Início" htmlFor="inicio" error={errors.inicio?.message}>
-              <Input id="inicio" type="datetime-local" {...register('inicio')} />
+              <Input
+                id="inicio"
+                type="datetime-local"
+                {...register('inicio')}
+                onChange={(e) => aoMudarData('inicio', e.target.value, HORA_INICIO)}
+              />
             </Field>
             <Field label="Fim" htmlFor="fim" error={errors.fim?.message}>
-              <Input id="fim" type="datetime-local" {...register('fim')} />
+              <Input
+                id="fim"
+                type="datetime-local"
+                {...register('fim')}
+                onChange={(e) => aoMudarData('fim', e.target.value, HORA_FIM)}
+              />
             </Field>
           </div>
           <div className="flex justify-end gap-2 pt-2">
