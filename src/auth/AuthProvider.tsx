@@ -25,6 +25,11 @@ export interface Permissions {
   isAdminGeral: boolean;
   /** Pode ver/gerenciar/aprovar membros: qualquer função na área geral. */
   gerenciaMembros: boolean;
+  /** É da COLIH (qualquer nível na área) — ou SuperAdmin. Vê a escala de plantão. */
+  ehMembroColih: boolean;
+  /** Cria/edita/exclui plantão: SuperAdmin ou admin da COLIH. Note que `adminDeArea`
+   * NÃO serve aqui, porque ele também aceita o nível 'ajudante'. */
+  gerenciaEscalas: boolean;
   /** Admin ou ajudante daquela área específica (ex.: coordenador da lista de
    * médicos), ou SuperAdmin — que tem acesso a tudo independente de área. */
   adminDeArea: (area: Area) => boolean;
@@ -131,6 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       temFuncao,
       isAdminGeral,
       gerenciaMembros: temFuncao('geral'),
+      ehMembroColih: isAdminGeral || temFuncao('colih'),
+      gerenciaEscalas: isAdminGeral || temFuncao('colih', 'admin'),
       adminDeArea,
     }),
     [

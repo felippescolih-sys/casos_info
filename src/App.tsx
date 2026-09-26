@@ -25,6 +25,8 @@ import { MedicosPage } from '@/pages/medicos/MedicosPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 const canManageHospitais = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
+// A escala é consulta de trabalho pra quem é da COLIH; quem edita é filtrado dentro da página.
+const canSeeEscalas = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
 
 export default function App() {
   return (
@@ -56,7 +58,7 @@ export default function App() {
         <Route
           path="/escalas"
           element={
-            <RequireAuth canAccess={canManageMembers}>
+            <RequireAuth canAccess={canSeeEscalas}>
               <EscalasPage />
             </RequireAuth>
           }

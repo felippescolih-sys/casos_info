@@ -19,9 +19,13 @@ import { Input, Select } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useAuth } from '@/auth/AuthProvider';
 
 export function EscalasPage() {
   const qc = useQueryClient();
+  // Membro COLIH sem admin chega aqui para consultar a escala, não para mexer nela.
+  // A RLS já recusa a escrita; isto evita oferecer um botão que só daria erro.
+  const { gerenciaEscalas } = useAuth();
   const [form, setForm] = useState<'novo' | EscalaComNomes | null>(null);
   const [excluindo, setExcluindo] = useState<EscalaComNomes | null>(null);
 
@@ -47,7 +51,7 @@ export function EscalasPage() {
           <h1 className="text-xl font-semibold text-gray-900">Escalas de plantão</h1>
           <p className="text-sm text-gray-500">Quem está designado em cada período.</p>
         </div>
-        <Button onClick={() => setForm('novo')}>+ Nova escala</Button>
+        {gerenciaEscalas && <Button onClick={() => setForm('novo')}>+ Nova escala</Button>}
       </div>
 
       {error && <Alert tone="error">{(error as Error).message}</Alert>}
@@ -68,7 +72,7 @@ export function EscalasPage() {
                   <th className="px-4 py-3">Fim</th>
                   <th className="px-4 py-3">Responsável</th>
                   <th className="px-4 py-3">Ajudante</th>
-                  <th className="px-4 py-3" />
+                  {gerenciaEscalas && <th className="px-4 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -78,24 +82,26 @@ export function EscalasPage() {
                     <td className="px-4 py-3">{formatDateTime(e.fim)}</td>
                     <td className="px-4 py-3">{e.membro_nome}</td>
                     <td className="px-4 py-3">{e.ajudante_nome ?? '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button
-                          type="button"
-                          className="font-medium text-brand-700 hover:underline"
-                          onClick={() => setForm(e)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="font-medium text-red-600 hover:underline"
-                          onClick={() => setExcluindo(e)}
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
+                    {gerenciaEscalas && (
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            type="button"
+                            className="font-medium text-brand-700 hover:underline"
+                            onClick={() => setForm(e)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="font-medium text-red-600 hover:underline"
+                            onClick={() => setExcluindo(e)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
