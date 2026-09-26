@@ -10,13 +10,15 @@ import { Input, Select } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { CasoStatusBadge } from '@/components/ui/Badge';
+import { AjudanteBadge, CasoStatusBadge } from '@/components/ui/Badge';
 
 export function CasosListPage() {
   const { membro } = useAuth();
+  // Abre em "meus casos": o uso normal é acompanhar o que é seu, e a lista inteira
+  // tem milhares de registros. Quem quiser ver tudo troca no filtro.
   const [filter, setFilter] = useState<CasosFilter>({
     status: 'aberto',
-    responsavel: 'todos',
+    responsavel: 'meus',
     areaEspecialidade: 'todas',
     search: '',
   });
@@ -106,7 +108,15 @@ export function CasosListPage() {
             <Spinner className="size-6" />
           </div>
         ) : !data?.rows.length ? (
-          <p className="p-8 text-center text-sm text-gray-500">Nenhum caso encontrado.</p>
+          <div className="p-8 text-center text-sm text-gray-500">
+            <p>Nenhum caso encontrado.</p>
+            {filter.responsavel === 'meus' && (
+              <p className="mt-1 text-xs">
+                A lista começa filtrada pelos seus casos — mude para{' '}
+                <span className="font-medium">Todos os responsáveis</span> para ver os demais.
+              </p>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -125,12 +135,15 @@ export function CasosListPage() {
                 {data.rows.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <Link
-                        to={`/casos/${c.id}`}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
-                        {c.paciente_nome ?? '(sem nome)'}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/casos/${c.id}`}
+                          className="font-medium text-brand-700 hover:underline"
+                        >
+                          {c.paciente_nome ?? '(sem nome)'}
+                        </Link>
+                        {c.ajudante_id === membro?.id && <AjudanteBadge />}
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                       {c.id_caso ?? '—'}

@@ -49,3 +49,12 @@ export function FuncaoBadge({
     </Base>
   );
 }
+
+/**
+ * Marca as linhas em que o usuário atual entra como ajudante, não como responsável.
+ * Só aparece nesse caso: quando ele é o responsável, o próprio nome dele já está
+ * na coluna "Responsável", então um segundo marcador seria ruído.
+ */
+export function AjudanteBadge() {
+  return <Base className="bg-blue-100 text-blue-800">Você é ajudante</Base>;
+}
