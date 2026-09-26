@@ -18,6 +18,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { InstalarApp } from '@/components/InstalarApp';
 
 export function DashboardPage() {
   const { membro } = useAuth();
@@ -48,6 +49,8 @@ export function DashboardPage() {
         >
           Ver casos
         </Link>
+        {/* Some sozinho quando já está instalado ou o navegador não suporta. */}
+        <InstalarApp className="inline-flex h-9 items-center gap-2 rounded-md border border-brand-200 bg-brand-50 px-4 text-sm font-medium text-brand-800 hover:bg-brand-100" />
       </div>
 
       <StatsRow />

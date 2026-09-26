@@ -12,6 +12,17 @@ const queryClient = new QueryClient({
   },
 });
 
+// Registra o service worker que habilita a instalação como app (ver public/sw.js).
+// Falha aqui não pode derrubar o app: sem service worker o site funciona igual,
+// só deixa de oferecer a instalação no Android.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .catch((e) => console.warn('service worker não registrado:', e));
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
