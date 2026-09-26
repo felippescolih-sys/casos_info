@@ -87,6 +87,12 @@ begin
 end;
 $$;
 
+-- Idempotente de propósito: esta migration foi aplicada à mão pelo SQL Editor antes
+-- de entrar no histórico do CLI, então o próximo `db push` vai reexecutá-la. Sem o
+-- drop, o create abaixo falharia com "trigger already exists" e travaria as migrations
+-- seguintes. `create or replace function` acima já é idempotente por natureza.
+drop trigger if exists escalas_notificar_mudanca on public.escalas;
+
 create trigger escalas_notificar_mudanca
   after insert or update or delete on public.escalas
   for each row execute function public.notificar_escala_alterada();
