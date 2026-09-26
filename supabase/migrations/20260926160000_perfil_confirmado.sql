@@ -9,8 +9,11 @@
 -- mexi nisso" e "posso qualquer dia" são indistinguíveis no banco. Daí esta coluna,
 -- que registra a confirmação explícita em vez de tentar adivinhar pelo conteúdo.
 
+-- `if not exists` porque esta migration foi aplicada à mão pelo SQL Editor antes
+-- de entrar no histórico do CLI: o próximo `db push` vai reexecutá-la, e sem a
+-- guarda o alter falharia e travaria as migrations seguintes.
 alter table public.membros
-  add column perfil_confirmado_em timestamptz;
+  add column if not exists perfil_confirmado_em timestamptz;
 
 comment on column public.membros.perfil_confirmado_em is
   'Quando o membro confirmou o próprio cadastro no primeiro acesso. Null = ainda não passou pelo onboarding.';
