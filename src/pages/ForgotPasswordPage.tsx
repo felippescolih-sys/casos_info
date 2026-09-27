@@ -15,6 +15,7 @@ type Form = z.infer<typeof schema>;
 
 export function ForgotPasswordPage() {
   const [enviado, setEnviado] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -22,10 +23,22 @@ export function ForgotPasswordPage() {
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
   async function onSubmit({ email }: Form) {
-    await supabase.auth.resetPasswordForEmail(email, {
+    setFalha(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/redefinir-senha`,
     });
-    setEnviado(true); // sempre mostra sucesso (não vaza se o e-mail existe)
+    // E-mail inexistente não gera erro no Supabase, então mostrar falha aqui não vaza
+    // se a conta existe. Já o limite de envio (429) recusa o e-mail de verdade — sem
+    // avisar, a pessoa ficaria esperando um link que nunca vai chegar.
+    if (error) {
+      setFalha(
+        error.status === 429 || error.code === 'over_email_send_rate_limit'
+          ? 'Muitos pedidos de redefinição agora e o e-mail não foi enviado. Aguarde alguns minutos e tente de novo.'
+          : 'Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.',
+      );
+      return;
+    }
+    setEnviado(true);
   }
 
   return (
@@ -44,6 +57,7 @@ export function ForgotPasswordPage() {
         </Alert>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {falha && <Alert tone="error">{falha}</Alert>}
           <Field label="E-mail" htmlFor="email" error={errors.email?.message}>
             <Input id="email" type="email" autoComplete="email" {...register('email')} />
           </Field>
