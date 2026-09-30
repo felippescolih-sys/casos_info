@@ -22,6 +22,7 @@ import { CasoFormPage } from '@/pages/casos/CasoFormPage';
 import { EscalasPage } from '@/pages/escalas/EscalasPage';
 import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 import { MedicosPage } from '@/pages/medicos/MedicosPage';
+import { ChamadasPage } from '@/pages/chamadas/ChamadasPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
@@ -96,6 +97,14 @@ export default function App() {
           }
         />
         <Route path="/medicos" element={<MedicosPage />} />
+        <Route
+          path="/chamadas"
+          element={
+            <RequireAuth canAccess={canSeeColih}>
+              <ChamadasPage />
+            </RequireAuth>
+          }
+        />
         <Route path="/403" element={<ForbiddenPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

@@ -19,6 +19,8 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { InstalarApp } from '@/components/InstalarApp';
+import { formatDuracaoMin, formatTelefone, getUltimaChamada } from '@/lib/queries/chamadas';
+import { StatusChamadaBadge } from '@/pages/chamadas/ChamadasPage';
 
 export function DashboardPage() {
   const { membro } = useAuth();
@@ -35,6 +37,8 @@ export function DashboardPage() {
       <TransferenciasPendentesBanner />
 
       <EscalaBanner />
+
+      <UltimaChamadaBanner />
 
       <div className="flex flex-wrap gap-2">
         <Link
@@ -151,6 +155,34 @@ function EscalaBanner() {
         <span className="text-green-100"> · Ajudante: {plantao.ajudante_nome}</span>
       )}
     </div>
+  );
+}
+
+function UltimaChamadaBanner() {
+  // Número de quem liga é dado pessoal: só a COLIH lê (RLS de chamadas_plantao).
+  const { ehMembroColih } = useAuth();
+  const { data: chamada } = useQuery({
+    queryKey: ['ultima-chamada'],
+    queryFn: getUltimaChamada,
+    enabled: ehMembroColih,
+    refetchInterval: 60_000,
+  });
+
+  if (!ehMembroColih || !chamada) return null;
+
+  return (
+    <Link
+      to="/chamadas"
+      className="-mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-white px-4 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-50"
+    >
+      <span className="font-medium text-gray-900">Última chamada:</span>
+      <span className="tabular-nums">{formatTelefone(chamada.numero_origem)}</span>
+      <span className="text-gray-400">·</span>
+      <span>{formatDateTime(chamada.data_hora_inicio)}</span>
+      <span className="text-gray-400">·</span>
+      <span className="tabular-nums">{formatDuracaoMin(chamada.duracao_segundos)}</span>
+      <StatusChamadaBadge status={chamada.status} />
+    </Link>
   );
 }
 

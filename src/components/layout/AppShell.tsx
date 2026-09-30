@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { to: '/casos', label: 'Casos' },
   { to: '/medicos', label: 'Médicos' },
   { to: '/escalas', label: 'Escalas', colih: true },
+  { to: '/chamadas', label: 'Chamadas', colih: true },
   { to: '/membros', label: 'Membros', colih: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },
   { to: '/hospitais', label: 'Hospitais', colih: true },

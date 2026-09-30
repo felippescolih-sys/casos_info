@@ -331,6 +331,21 @@ export type EspecialidadeMedicaRow = {
   created_at: string;
 };
 
+export type ChamadaPlantaoRow = {
+  id: string;
+  uniqueid: string;
+  data_hora_inicio: string;
+  data_hora_fim: string | null;
+  numero_origem: string | null;
+  numero_destino: string | null;
+  duracao_segundos: number | null;
+  duracao_falada_segundos: number | null;
+  status: string | null;
+  canal_origem: string | null;
+  canal_destino: string | null;
+  created_at: string;
+};
+
 export type MedicoContatoSangueRow = {
   medico_id: string;
   marcado_por: string | null;
@@ -459,6 +474,12 @@ export type Database = {
         Row: MedicoRow;
         Insert: MedicoInsert;
         Update: MedicoUpdate;
+        Relationships: [];
+      };
+      chamadas_plantao: {
+        Row: ChamadaPlantaoRow;
+        Insert: Omit<ChamadaPlantaoRow, 'id' | 'created_at'>;
+        Update: Partial<Omit<ChamadaPlantaoRow, 'id' | 'created_at'>>;
         Relationships: [];
       };
       medicos_contato_sangue: {
