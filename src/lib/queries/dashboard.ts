@@ -53,7 +53,8 @@ export async function getUltimosCasos(limite = 8): Promise<CasoResumoRow[]> {
     .from('casos_resumo')
     .select('*')
     .eq('status', 'aberto')
-    .order('created_at', { ascending: false })
+    // `aberto_em` é a criação real; o `created_at` dos casos do Bubble é a data da importação.
+    .order('aberto_em', { ascending: false, nullsFirst: false })
     .limit(limite);
   if (error) throw error;
   return data ?? [];
