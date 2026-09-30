@@ -96,6 +96,7 @@ export function ChamadasPage() {
                   <th className="px-4 py-3">Número de origem</th>
                   <th className="px-4 py-3 text-right">Duração</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Plantonista</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -112,6 +113,14 @@ export function ChamadasPage() {
                     </td>
                     <td className="px-4 py-3">
                       <StatusChamadaBadge status={c.status} />
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {c.plantonista_nome ?? <span className="text-gray-400">Sem escala</span>}
+                      {c.ajudante_nome && (
+                        <span className="block text-xs text-gray-500">
+                          Ajudante: {c.ajudante_nome}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
