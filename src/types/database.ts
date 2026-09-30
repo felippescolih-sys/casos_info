@@ -344,6 +344,10 @@ export type ChamadaPlantaoRow = {
   canal_origem: string | null;
   canal_destino: string | null;
   created_at: string;
+  /** Foto de quem estava na escala quando a chamada chegou (trigger no insert). */
+  plantonista_id: string | null;
+  plantonista_nome: string | null;
+  ajudante_nome: string | null;
 };
 
 export type MedicoContatoSangueRow = {
@@ -478,7 +482,10 @@ export type Database = {
       };
       chamadas_plantao: {
         Row: ChamadaPlantaoRow;
-        Insert: Omit<ChamadaPlantaoRow, 'id' | 'created_at'>;
+        Insert: Omit<
+          ChamadaPlantaoRow,
+          'id' | 'created_at' | 'plantonista_id' | 'plantonista_nome' | 'ajudante_nome'
+        >;
         Update: Partial<Omit<ChamadaPlantaoRow, 'id' | 'created_at'>>;
         Relationships: [];
       };

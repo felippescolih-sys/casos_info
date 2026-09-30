@@ -1,54 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { ChamadaPlantaoRow } from '@/types/database';
 
-export type ChamadaComPlantonista = ChamadaPlantaoRow & {
-  plantonista_nome: string | null;
-  ajudante_nome: string | null;
-};
-
-type EscalaComNomesMin = {
-  inicio: string;
-  fim: string;
-  membro: { nome: string } | null;
-  ajudante: { nome: string } | null;
-};
-
-// As escalas terminam às 02:59 UTC e a seguinte começa às 03:00, então sobra um
-// minuto descoberto (23:59 em Brasília). A tolerância cobre esse buraco.
-const TOLERANCIA_FIM_MS = 60_000;
-
-/**
- * O Asterisk não sabe quem estava de plantão: cruza o início de cada chamada com a
- * escala. Com escalas sobrepostas, vale a que começou por último (a mais específica).
- */
-async function anexarPlantonista(rows: ChamadaPlantaoRow[]): Promise<ChamadaComPlantonista[]> {
-  if (!rows.length) return [];
-  const tempos = rows.map((r) => new Date(r.data_hora_inicio).getTime());
-  const min = new Date(Math.min(...tempos) - TOLERANCIA_FIM_MS).toISOString();
-  const max = new Date(Math.max(...tempos)).toISOString();
-  const { data, error } = await supabase
-    .from('escalas')
-    .select('inicio, fim, membro:membros!membro_id(nome), ajudante:membros!ajudante_id(nome)')
-    .lte('inicio', max)
-    .gte('fim', min)
-    .order('inicio', { ascending: false });
-  if (error) throw error;
-  const escalas = (data ?? []) as unknown as EscalaComNomesMin[];
-
-  return rows.map((r) => {
-    const t = new Date(r.data_hora_inicio).getTime();
-    const e = escalas.find(
-      (x) =>
-        new Date(x.inicio).getTime() <= t && new Date(x.fim).getTime() + TOLERANCIA_FIM_MS > t,
-    );
-    return {
-      ...r,
-      plantonista_nome: e?.membro?.nome ?? null,
-      ajudante_nome: e?.ajudante?.nome ?? null,
-    };
-  });
-}
-
 /** Status do CDR do Asterisk (disposition), em português. */
 export const STATUS_CHAMADA: Record<string, string> = {
   ANSWERED: 'Atendida',
@@ -87,7 +39,7 @@ export interface ChamadasFilter {
 
 export async function listChamadas(
   filter: ChamadasFilter,
-): Promise<{ rows: ChamadaComPlantonista[]; total: number }> {
+): Promise<{ rows: ChamadaPlantaoRow[]; total: number }> {
   const from = filter.page * filter.pageSize;
   let query = supabase
     .from('chamadas_plantao')
@@ -97,7 +49,7 @@ export async function listChamadas(
   if (filter.status && filter.status !== 'todos') query = query.eq('status', filter.status);
   const { data, error, count } = await query;
   if (error) throw error;
-  return { rows: await anexarPlantonista(data ?? []), total: count ?? 0 };
+  return { rows: data ?? [], total: count ?? 0 };
 }
 
 export async function getUltimaChamada(): Promise<ChamadaPlantaoRow | null> {
