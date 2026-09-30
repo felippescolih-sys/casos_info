@@ -1,19 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { ChamadaPlantaoRow } from '@/types/database';
 
-/** Status do CDR do Asterisk (disposition), em português. */
-export const STATUS_CHAMADA: Record<string, string> = {
-  ANSWERED: 'Atendida',
-  'NO ANSWER': 'Não atendida',
-  BUSY: 'Ocupado',
-  FAILED: 'Falhou',
-  CONGESTION: 'Congestionada',
-};
-
-export function statusChamadaLabel(status: string | null): string {
-  if (!status) return '—';
-  return STATUS_CHAMADA[status] ?? status;
-}
+// O status (disposition do Asterisk) NÃO é exibido: a FXO do HT813 atende assim que
+// pega a linha, então "ANSWERED" não quer dizer que o plantonista atendeu.
 
 /** Duração em minutos, com uma casa decimal: 31 s → "0,5 min". */
 export function formatDuracaoMin(segundos: number | null): string {
@@ -32,7 +21,6 @@ export function formatTelefone(numero: string | null): string {
 }
 
 export interface ChamadasFilter {
-  status?: string | 'todos';
   page: number;
   pageSize: number;
 }
@@ -41,13 +29,11 @@ export async function listChamadas(
   filter: ChamadasFilter,
 ): Promise<{ rows: ChamadaPlantaoRow[]; total: number }> {
   const from = filter.page * filter.pageSize;
-  let query = supabase
+  const { data, error, count } = await supabase
     .from('chamadas_plantao')
     .select('*', { count: 'exact' })
     .order('data_hora_inicio', { ascending: false })
     .range(from, from + filter.pageSize - 1);
-  if (filter.status && filter.status !== 'todos') query = query.eq('status', filter.status);
-  const { data, error, count } = await query;
   if (error) throw error;
   return { rows: data ?? [], total: count ?? 0 };
 }
@@ -65,20 +51,15 @@ export async function getUltimaChamada(): Promise<ChamadaPlantaoRow | null> {
 
 /**
  * Contagem dos últimos 15 dias (o que a limpeza mantém). `unicas` junta as
- * repetições do mesmo número no mesmo dia; `nao_atendidas` são desses pares os que
- * não tiveram nenhuma chamada atendida no dia.
+ * repetições do mesmo número no mesmo dia. A RPC também devolve `nao_atendidas`,
+ * que não é usada: depende do status, que não é confiável (ver acima).
  */
-export async function getChamadasContagem(): Promise<{
-  total: number;
-  unicas: number;
-  nao_atendidas: number;
-}> {
+export async function getChamadasContagem(): Promise<{ total: number; unicas: number }> {
   const { data, error } = await supabase.rpc('chamadas_contagem');
   if (error) throw error;
   const r = data?.[0];
   return {
     total: Number(r?.total ?? 0),
     unicas: Number(r?.unicas ?? 0),
-    nao_atendidas: Number(r?.nao_atendidas ?? 0),
   };
 }

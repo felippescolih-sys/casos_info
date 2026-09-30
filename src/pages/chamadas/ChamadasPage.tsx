@@ -5,43 +5,21 @@ import {
   formatTelefone,
   getChamadasContagem,
   listChamadas,
-  STATUS_CHAMADA,
-  statusChamadaLabel,
 } from '@/lib/queries/chamadas';
 import { formatDateTime } from '@/lib/format';
-import { cn } from '@/lib/cn';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 
 const PAGE_SIZE = 50;
 
-export function StatusChamadaBadge({ status }: { status: string | null }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-        status === 'ANSWERED'
-          ? 'bg-green-50 text-green-800 ring-1 ring-inset ring-green-200'
-          : status === 'NO ANSWER'
-            ? 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200'
-            : 'bg-red-50 text-red-800 ring-1 ring-inset ring-red-200',
-      )}
-    >
-      {statusChamadaLabel(status)}
-    </span>
-  );
-}
-
 export function ChamadasPage() {
-  const [status, setStatus] = useState('todos');
   const [page, setPage] = useState(0);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['chamadas', status, page],
-    queryFn: () => listChamadas({ status, page, pageSize: PAGE_SIZE }),
+    queryKey: ['chamadas', page],
+    queryFn: () => listChamadas({ page, pageSize: PAGE_SIZE }),
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
   });
@@ -65,18 +43,13 @@ export function ChamadasPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {[
           { label: 'Total de chamadas', valor: contagem?.total, hint: 'todas as ligações' },
           {
             label: 'Sem repetições',
             valor: contagem?.unicas,
             hint: 'mesmo número no mesmo dia conta uma vez',
-          },
-          {
-            label: 'Não atendidas',
-            valor: contagem?.nao_atendidas,
-            hint: 'sem repetições, e sem nenhuma atendida no dia',
           },
         ].map((t) => (
           <Card key={t.label}>
@@ -89,29 +62,6 @@ export function ChamadasPage() {
             </CardBody>
           </Card>
         ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Select
-          className="w-56"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(0);
-          }}
-        >
-          <option value="todos">Todos os status</option>
-          {Object.entries(STATUS_CHAMADA).map(([valor, label]) => (
-            <option key={valor} value={valor}>
-              {label}
-            </option>
-          ))}
-        </Select>
-        {data && (
-          <span className="text-sm text-gray-500">
-            {total} {total === 1 ? 'chamada' : 'chamadas'}
-          </span>
-        )}
       </div>
 
       {error && <Alert tone="error">{(error as Error).message}</Alert>}
@@ -131,7 +81,6 @@ export function ChamadasPage() {
                   <th className="px-4 py-3">Início</th>
                   <th className="px-4 py-3">Número de origem</th>
                   <th className="px-4 py-3 text-right">Duração</th>
-                  <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Plantonista</th>
                 </tr>
               </thead>
@@ -146,9 +95,6 @@ export function ChamadasPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-700">
                       {formatDuracaoMin(c.duracao_segundos)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusChamadaBadge status={c.status} />
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {c.plantonista_nome ?? <span className="text-gray-400">Sem escala</span>}

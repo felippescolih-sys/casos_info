@@ -20,7 +20,6 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { InstalarApp } from '@/components/InstalarApp';
 import { formatDuracaoMin, formatTelefone, getUltimaChamada } from '@/lib/queries/chamadas';
-import { StatusChamadaBadge } from '@/pages/chamadas/ChamadasPage';
 
 export function DashboardPage() {
   const { membro } = useAuth();
@@ -181,7 +180,6 @@ function UltimaChamadaBanner() {
       <span>{formatDateTime(chamada.data_hora_inicio)}</span>
       <span className="text-gray-400">·</span>
       <span className="tabular-nums">{formatDuracaoMin(chamada.duracao_segundos)}</span>
-      <StatusChamadaBadge status={chamada.status} />
     </Link>
   );
 }
