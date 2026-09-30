@@ -220,6 +220,7 @@ export type CasoRow = {
   outro_medico: string | null;
   outro_medico_especialidade: string | null;
   morbidade: string | null;
+  problema_especifico: string | null;
   info_medica: string | null;
   plano_tratamento: string | null;
   equipe_informada: boolean | null;
@@ -541,6 +542,11 @@ export type Database = {
       membros_por_area: {
         Args: { _area: Area };
         Returns: { id: string; nome: string }[];
+      };
+      promover_medico_geral: { Args: { _id: string }; Returns: string };
+      chamadas_contagem: {
+        Args: Record<string, never>;
+        Returns: { total: number; unicas: number; nao_atendidas: number }[];
       };
     };
     Enums: {

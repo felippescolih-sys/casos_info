@@ -3,13 +3,14 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   formatDuracaoMin,
   formatTelefone,
+  getChamadasContagem,
   listChamadas,
   STATUS_CHAMADA,
   statusChamadaLabel,
 } from '@/lib/queries/chamadas';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import { Card } from '@/components/ui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
@@ -45,6 +46,13 @@ export function ChamadasPage() {
     refetchInterval: 60_000,
   });
 
+  const contagemQ = useQuery({
+    queryKey: ['chamadas-contagem'],
+    queryFn: getChamadasContagem,
+    refetchInterval: 60_000,
+  });
+  const contagem = contagemQ.data;
+
   const total = data?.total ?? 0;
   const ultimaPagina = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1);
 
@@ -52,7 +60,35 @@ export function ChamadasPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Chamadas recebidas</h1>
-        <p className="text-sm text-gray-500">Ligações que chegaram no telefone de plantão.</p>
+        <p className="text-sm text-gray-500">
+          Ligações que chegaram no telefone de plantão nos últimos 15 dias.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Total de chamadas', valor: contagem?.total, hint: 'todas as ligações' },
+          {
+            label: 'Sem repetições',
+            valor: contagem?.unicas,
+            hint: 'mesmo número no mesmo dia conta uma vez',
+          },
+          {
+            label: 'Não atendidas',
+            valor: contagem?.nao_atendidas,
+            hint: 'sem repetições, e sem nenhuma atendida no dia',
+          },
+        ].map((t) => (
+          <Card key={t.label}>
+            <CardBody className="p-4">
+              <p className="text-xs font-medium text-gray-500">{t.label}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">
+                {t.valor ?? '—'}
+              </p>
+              <p className="text-xs text-gray-400">{t.hint}</p>
+            </CardBody>
+          </Card>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

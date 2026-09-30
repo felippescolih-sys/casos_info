@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -124,6 +125,39 @@ function toForm(m: MedicoComEspecialidade): Form {
   };
 }
 
+function formParaPayload(v: Form) {
+  return {
+    nome: v.nome.trim(),
+    foto_url: nil(v.foto_url),
+    crm_uf: nil(v.crm_uf),
+    email: nil(v.email),
+    especialidade_id: nil(v.especialidade_id),
+    subespecialidade: nil(v.subespecialidade),
+    rating: v.rating?.trim() ? Number(v.rating) : null,
+    membro_indicacao: nil(v.membro_indicacao),
+    infos_add: nil(v.infos_add),
+    tel_consultorio: nil(v.tel_consultorio),
+    tel_secretaria: nil(v.tel_secretaria),
+    tel_confidencial: nil(v.tel_confidencial),
+    nome_secretaria: nil(v.nome_secretaria),
+    endereco_consultorio: nil(v.endereco_consultorio),
+    hospitais_atua: nil(v.hospitais_atua),
+    end_hospital: nil(v.end_hospital),
+    acompanhante: nil(v.acompanhante),
+    ultima_visita: nil(v.ultima_visita),
+    sus: v.sus,
+    convenio: v.convenio,
+    particular: v.particular,
+    telemedicina: v.telemedicina,
+    medico_tj: v.medico_tj,
+    pediatria: v.pediatria,
+    atend_consult: v.atend_consult,
+    primeira_visita: v.primeira_visita,
+    revisita: v.revisita,
+    ativo: v.ativo,
+  };
+}
+
 function Estrelas({ rating }: { rating: number | null }) {
   if (rating == null) return <span className="text-xs text-gray-400">Sem avaliação</span>;
   return (
@@ -191,36 +225,7 @@ export function ColaboradoresTab() {
 
   const salvar = useMutation({
     mutationFn: (v: Form) => {
-      const payload = {
-        nome: v.nome.trim(),
-        foto_url: nil(v.foto_url),
-        crm_uf: nil(v.crm_uf),
-        email: nil(v.email),
-        especialidade_id: nil(v.especialidade_id),
-        subespecialidade: nil(v.subespecialidade),
-        rating: v.rating?.trim() ? Number(v.rating) : null,
-        membro_indicacao: nil(v.membro_indicacao),
-        infos_add: nil(v.infos_add),
-        tel_consultorio: nil(v.tel_consultorio),
-        tel_secretaria: nil(v.tel_secretaria),
-        tel_confidencial: nil(v.tel_confidencial),
-        nome_secretaria: nil(v.nome_secretaria),
-        endereco_consultorio: nil(v.endereco_consultorio),
-        hospitais_atua: nil(v.hospitais_atua),
-        end_hospital: nil(v.end_hospital),
-        acompanhante: nil(v.acompanhante),
-        ultima_visita: nil(v.ultima_visita),
-        sus: v.sus,
-        convenio: v.convenio,
-        particular: v.particular,
-        telemedicina: v.telemedicina,
-        medico_tj: v.medico_tj,
-        pediatria: v.pediatria,
-        atend_consult: v.atend_consult,
-        primeira_visita: v.primeira_visita,
-        revisita: v.revisita,
-        ativo: v.ativo,
-      };
+      const payload = formParaPayload(v);
       return editing ? atualizarMedico(editing.id, payload) : criarMedico(payload);
     },
     onSuccess: (_r, v) => {
@@ -532,6 +537,63 @@ function DetalheModal({
   );
 }
 
+/**
+ * Abre logo depois de transferir um prospectivo para colaborador. O colaborador já
+ * existe nesse ponto; fechar sem salvar só deixa o resto do cadastro para depois.
+ */
+export function CompletarColaboradorModal({
+  medico,
+  onClose,
+}: {
+  medico: MedicoComEspecialidade;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const especialidadesQ = useQuery({
+    queryKey: ['especialidades-medicas'],
+    queryFn: listEspecialidadesMedicas,
+    staleTime: 3_600_000,
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty },
+  } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: toForm(medico) });
+
+  const salvar = useMutation({
+    mutationFn: (v: Form) => atualizarMedico(medico.id, formParaPayload(v)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['medicos'] });
+      onClose();
+    },
+  });
+
+  return (
+    <Modal
+      open
+      title={`${medico.nome} agora é colaborador`}
+      onClose={onClose}
+      maxWidthClassName="max-w-3xl"
+    >
+      <p className="mb-4 text-sm text-gray-500">
+        Complete o cadastro agora ou feche e preencha depois pela aba Colaboradores.
+      </p>
+      <MedicoForm
+        titulo="Dados do colaborador"
+        register={register}
+        errors={errors}
+        especialidades={especialidadesQ.data ?? []}
+        onSubmit={handleSubmit((v) => salvar.mutate(v))}
+        onCancel={onClose}
+        cancelLabel="Preencher depois"
+        loading={salvar.isPending}
+        disabled={!isDirty}
+        erro={salvar.error as Error | null}
+      />
+    </Modal>
+  );
+}
+
 interface MedicoFormProps {
   titulo: string;
   register: ReturnType<typeof useForm<Form>>['register'];
@@ -539,6 +601,7 @@ interface MedicoFormProps {
   especialidades: { id: string; nome: string }[];
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  cancelLabel?: string;
   loading: boolean;
   disabled: boolean;
   erro: Error | null;
@@ -551,6 +614,7 @@ function MedicoForm({
   especialidades,
   onSubmit,
   onCancel,
+  cancelLabel = 'Cancelar',
   loading,
   disabled,
   erro,
@@ -674,7 +738,7 @@ function MedicoForm({
               Salvar
             </Button>
             <Button type="button" variant="ghost" onClick={onCancel}>
-              Cancelar
+              {cancelLabel}
             </Button>
           </div>
         </form>

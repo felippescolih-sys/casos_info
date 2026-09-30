@@ -40,7 +40,7 @@ const TEXT_FIELDS = [
   'comentario_familia', 'hospital_nome', 'num_quarto', 'tele_hospital', 'tipo_atendimento',
   'plano_nome', 'congregacao', 'cidade', 'uf', 'anciaos_contatados', 'anciaos_cont_tel',
   'rn_peso', 'rn_idade_gestacional', 'rn_data_nascimento', 'rn_apgar_nascimento', 'rn_apgar_5min',
-  'morbidade', 'area_especialidade', 'info_medica', 'medico_responsavel', 'especialidade', 'outro_medico',
+  'morbidade', 'problema_especifico', 'area_especialidade', 'info_medica', 'medico_responsavel', 'especialidade', 'outro_medico',
   'outro_medico_especialidade', 'plano_tratamento', 'estrategia', 'artigos_medicos',
   'medico_consultor_nome', 'medico_consultor_contato', 'medico_consultor_especialidade',
   'medico_consultor_outras', 'transf_hospital_destino', 'transf_medico_destino',
@@ -169,12 +169,6 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
   const t = (name: (typeof TEXT_FIELDS)[number]) => register(name);
   const b = (name: (typeof BOOL_FIELDS)[number]) => register(name);
   const avisoAnciaos = avisoWhatsapp(watch('anciaos_cont_tel') as string);
-  const ctl = (name: (typeof TEXT_FIELDS)[number]) => ({
-    value: String(watch(name) ?? ''),
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setValue(name, e.target.value, { shouldDirty: true }),
-  });
-
   const contatos = (watch('contatos_paciente') as ContatoPaciente[]) ?? [];
   const setContatos = (next: ContatoPaciente[]) =>
     setValue('contatos_paciente', next, { shouldDirty: true });
@@ -349,11 +343,16 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
 
         {/* INFORMAÇÕES MÉDICAS */}
         <Band tone="green">Informações médicas sobre o caso</Band>
+        <Row cols={1}>
+          <Cell label="Morbidade">
+            <FInput {...t('morbidade')} placeholder="ex.: anemia, sangramento pós-parto" />
+          </Cell>
+        </Row>
         <BlockCell
-          label="Problema específico (morbidade)"
+          label="Problema específico"
           hint="Qual é o diagnóstico médico? Por que a questão do sangue está envolvida (sangramento, bebê prematuro, anemia)?"
         >
-          <FTextarea rows={3} {...ctl('morbidade')} />
+          <FTextarea rows={3} {...t('problema_especifico')} />
         </BlockCell>
         <BlockCell
           label="Histórico de saúde ligado ao problema"
@@ -541,10 +540,7 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
             </span>
           </Cell>
         </Row>
-        <Row cols={2}>
-          <Cell label="Morbidade">
-            <FInput {...ctl('morbidade')} placeholder="ex.: anemia, sangramento pós-parto" />
-          </Cell>
+        <Row cols={1}>
           <Cell label="Especialidade (grupo do caso)">
             <FSelect {...t('area_especialidade')}>
               <option value="">—</option>

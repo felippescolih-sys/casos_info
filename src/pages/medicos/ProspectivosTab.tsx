@@ -9,10 +9,17 @@ import {
   criarMedicoGeral,
   excluirMedicoGeral,
   listMedicosGeral,
+  promoverMedicoGeral,
   type MedicoGeralComEspecialidade,
 } from '@/lib/queries/medicosGeral';
 import { listEspecialidadesMedicas } from '@/lib/queries/especialidadesMedicas';
-import { getMedicosTotalCasos, totalCasosDe } from '@/lib/queries/medicos';
+import {
+  getMedico,
+  getMedicosTotalCasos,
+  totalCasosDe,
+  type MedicoComEspecialidade,
+} from '@/lib/queries/medicos';
+import { CompletarColaboradorModal } from './ColaboradoresTab';
 import { Card } from '@/components/ui/Card';
 import { Field } from '@/components/ui/Field';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -43,6 +50,8 @@ export function ProspectivosTab() {
   );
   const [toDelete, setToDelete] = useState<MedicoGeralComEspecialidade | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [toPromote, setToPromote] = useState<MedicoGeralComEspecialidade | null>(null);
+  const [completando, setCompletando] = useState<MedicoComEspecialidade | null>(null);
 
   const especialidadesQ = useQuery({
     queryKey: ['especialidades-medicas'],
@@ -107,6 +116,21 @@ export function ProspectivosTab() {
     onError: () => setToDelete(null),
   });
 
+  const promover = useMutation({
+    mutationFn: async (m: MedicoGeralComEspecialidade) => {
+      const novoId = await promoverMedicoGeral(m.id);
+      return getMedico(novoId);
+    },
+    onSuccess: (novo, m) => {
+      setMsg(`"${m.nome}" transferido para colaboradores.`);
+      setToPromote(null);
+      setCompletando(novo);
+      void qc.invalidateQueries({ queryKey: ['medicos-geral'] });
+      void qc.invalidateQueries({ queryKey: ['medicos'] });
+    },
+    onError: () => setToPromote(null),
+  });
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -122,6 +146,7 @@ export function ProspectivosTab() {
       </div>
 
       {msg && <Alert tone="success">{msg}</Alert>}
+      {promover.error && <Alert tone="error">{(promover.error as Error).message}</Alert>}
 
       {editing !== undefined && (
         <FormModal
@@ -203,6 +228,9 @@ export function ProspectivosTab() {
                     <td className="px-4 py-3 text-right">
                       {podeGerenciar && (
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setToPromote(m)}>
+                            Tornar colaborador
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => setEditing(m)}>
                             Editar
                           </Button>
@@ -231,6 +259,22 @@ export function ProspectivosTab() {
       >
         Essa ação não afeta casos que já têm esse nome de médico preenchido.
       </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!toPromote}
+        title={`Tornar "${toPromote?.nome}" colaborador?`}
+        loading={promover.isPending}
+        confirmLabel="Transferir"
+        onConfirm={() => toPromote && promover.mutate(toPromote)}
+        onCancel={() => setToPromote(null)}
+      >
+        O médico sai da lista de prospectivos e passa para a de colaboradores, com nome,
+        CRM, especialidade e observações. Em seguida você pode completar o cadastro.
+      </ConfirmDialog>
+
+      {completando && (
+        <CompletarColaboradorModal medico={completando} onClose={() => setCompletando(null)} />
+      )}
     </div>
   );
 }

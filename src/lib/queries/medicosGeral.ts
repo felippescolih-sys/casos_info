@@ -59,3 +59,13 @@ export async function excluirMedicoGeral(id: string): Promise<void> {
   const { error } = await supabase.from('medicos_geral').delete().eq('id', id);
   if (error) throw error;
 }
+
+/**
+ * Transfere o prospectivo para a lista de colaboradores (cria em `medicos` e apaga
+ * de `medicos_geral`, na mesma transação). Devolve o id do novo colaborador.
+ */
+export async function promoverMedicoGeral(id: string): Promise<string> {
+  const { data, error } = await supabase.rpc('promover_medico_geral', { _id: id });
+  if (error) throw error;
+  return data;
+}

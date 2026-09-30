@@ -278,8 +278,13 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
       </Row>
 
       <Band tone="green">Informações médicas sobre o caso</Band>
+      <Row cols={1}>
+        <Cell label="Morbidade">
+          <V>{c.morbidade}</V>
+        </Cell>
+      </Row>
       <BlockCell label="Problema específico">
-        <V>{c.morbidade}</V>
+        <V>{c.problema_especifico}</V>
       </BlockCell>
       <BlockCell label="Histórico de saúde ligado ao problema">
         <V>{c.info_medica}</V>
@@ -411,9 +416,6 @@ function HLC7View({ caso: c }: { caso: CasoRow }) {
         </Cell>
         <Cell label="Ajudante">
           <V>{c.ajudante_nome}</V>
-        </Cell>
-        <Cell label="Morbidade">
-          <V>{c.morbidade}</V>
         </Cell>
         <Cell label="Especialidade (grupo do caso)">
           <V>{c.area_especialidade ? areaEspecialidadeLabel[c.area_especialidade] : null}</V>

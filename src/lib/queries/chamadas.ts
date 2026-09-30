@@ -62,3 +62,23 @@ export async function getUltimaChamada(): Promise<ChamadaPlantaoRow | null> {
   if (error) throw error;
   return data;
 }
+
+/**
+ * Contagem dos últimos 15 dias (o que a limpeza mantém). `unicas` junta as
+ * repetições do mesmo número no mesmo dia; `nao_atendidas` são desses pares os que
+ * não tiveram nenhuma chamada atendida no dia.
+ */
+export async function getChamadasContagem(): Promise<{
+  total: number;
+  unicas: number;
+  nao_atendidas: number;
+}> {
+  const { data, error } = await supabase.rpc('chamadas_contagem');
+  if (error) throw error;
+  const r = data?.[0];
+  return {
+    total: Number(r?.total ?? 0),
+    unicas: Number(r?.unicas ?? 0),
+    nao_atendidas: Number(r?.nao_atendidas ?? 0),
+  };
+}
