@@ -8,7 +8,9 @@ import {
   atualizarMedico,
   criarMedico,
   excluirMedico,
+  getContatosSangue,
   getMedicosTotalCasos,
+  setContatoSangue,
   listMedicos,
   totalCasosDe,
   type MedicoComEspecialidade,
@@ -21,6 +23,8 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { formatDateTime } from '@/lib/format';
+import { cn } from '@/lib/cn';
 
 const schema = z.object({
   nome: z.string().min(2, 'Informe o nome do médico'),
@@ -132,10 +136,11 @@ function Estrelas({ rating }: { rating: number | null }) {
 
 export function ColaboradoresTab() {
   const qc = useQueryClient();
-  const { adminDeArea } = useAuth();
+  const { adminDeArea, ehMembroColih } = useAuth();
   const podeGerenciar = adminDeArea('medicos');
   const [search, setSearch] = useState('');
   const [especialidadeId, setEspecialidadeId] = useState('todas');
+  const [filtroContato, setFiltroContato] = useState<'todos' | 'contatados' | 'pendentes'>('todos');
   const [selecionado, setSelecionado] = useState<MedicoComEspecialidade | null>(null);
   const [editing, setEditing] = useState<MedicoComEspecialidade | null | undefined>(undefined);
   const [toDelete, setToDelete] = useState<MedicoComEspecialidade | null>(null);
@@ -155,6 +160,22 @@ export function ColaboradoresTab() {
     queryFn: getMedicosTotalCasos,
     staleTime: 300_000,
   });
+
+  const contatosQ = useQuery({
+    queryKey: ['medicos-contato-sangue'],
+    queryFn: getContatosSangue,
+  });
+  const contatos = contatosQ.data ?? new Map();
+
+  const marcarContato = useMutation({
+    mutationFn: ({ id, contatado }: { id: string; contatado: boolean }) =>
+      setContatoSangue(id, contatado),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['medicos-contato-sangue'] }),
+  });
+
+  const visiveis = (data ?? []).filter((m) =>
+    filtroContato === 'todos' ? true : contatos.has(m.id) === (filtroContato === 'contatados'),
+  );
 
   const {
     register,
@@ -248,7 +269,7 @@ export function ColaboradoresTab() {
         />
       )}
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_14rem_14rem]">
         <Input
           placeholder="Buscar por nome, CRM ou subespecialidade"
           value={search}
@@ -262,7 +283,25 @@ export function ColaboradoresTab() {
             </option>
           ))}
         </Select>
+        <Select
+          value={filtroContato}
+          onChange={(e) => setFiltroContato(e.target.value as typeof filtroContato)}
+        >
+          <option value="todos">Contato sobre sangue: todos</option>
+          <option value="contatados">Já contatados</option>
+          <option value="pendentes">Ainda não contatados</option>
+        </Select>
       </div>
+
+      {data && contatosQ.data && (
+        <p className="text-xs text-gray-500">
+          Contatados sobre a atualização do uso do sangue:{' '}
+          <span className="font-medium text-gray-800">
+            {data.filter((m) => contatos.has(m.id)).length} de {data.length}
+          </span>
+        </p>
+      )}
+      {marcarContato.error && <Alert tone="error">{(marcarContato.error as Error).message}</Alert>}
 
       {error && <Alert tone="error">{(error as Error).message}</Alert>}
 
@@ -270,36 +309,76 @@ export function ColaboradoresTab() {
         <div className="flex justify-center p-8 text-gray-400">
           <Spinner className="size-6" />
         </div>
-      ) : !data?.length ? (
+      ) : !visiveis.length ? (
         <p className="p-8 text-center text-sm text-gray-500">Nenhum médico colaborador.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setSelecionado(m)}
-              className="flex gap-3 rounded-lg bg-white p-4 text-left shadow-sm ring-1 ring-gray-200 hover:ring-brand-300"
-            >
-              {m.foto_url ? (
-                <img src={m.foto_url} alt="" className="size-14 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-medium text-gray-400">
-                  {m.nome.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate font-medium text-gray-900">{m.nome}</p>
-                <p className="truncate text-xs text-gray-500">{m.especialidade?.nome ?? '—'}</p>
-                <div className="mt-1 flex items-center gap-2 text-xs">
-                  <Estrelas rating={m.rating != null ? Math.round(m.rating) : null} />
-                  <span className="text-gray-400">
-                    · {totalCasosDe(totalCasosQ.data ?? new Map(), m.nome)} caso(s)
+          {visiveis.map((m) => {
+            const contato = contatos.get(m.id);
+            const pendente = marcarContato.isPending && marcarContato.variables?.id === m.id;
+            return (
+              <div
+                key={m.id}
+                className="flex flex-col rounded-lg bg-white shadow-sm ring-1 ring-gray-200 hover:ring-brand-300"
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelecionado(m)}
+                  className="flex gap-3 p-4 pb-3 text-left"
+                >
+                  {m.foto_url ? (
+                    <img
+                      src={m.foto_url}
+                      alt=""
+                      className="size-14 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-medium text-gray-400">
+                      {m.nome.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">{m.nome}</p>
+                    <p className="truncate text-xs text-gray-500">{m.especialidade?.nome ?? '—'}</p>
+                    <div className="mt-1 flex items-center gap-2 text-xs">
+                      <Estrelas rating={m.rating != null ? Math.round(m.rating) : null} />
+                      <span className="text-gray-400">
+                        · {totalCasosDe(totalCasosQ.data ?? new Map(), m.nome)} caso(s)
+                      </span>
+                    </div>
+                  </div>
+                </button>
+                <label
+                  className={cn(
+                    'mt-auto flex items-start gap-2 border-t border-gray-100 px-4 py-2.5 text-xs',
+                    ehMembroColih ? 'cursor-pointer' : 'cursor-default',
+                    contato ? 'text-green-800' : 'text-gray-500',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0 rounded border-gray-300 text-green-700 focus:ring-green-600 disabled:opacity-60"
+                    checked={pendente ? !!marcarContato.variables?.contatado : !!contato}
+                    disabled={!ehMembroColih || pendente}
+                    onChange={(e) =>
+                      marcarContato.mutate({
+                        id: m.id,
+                        contatado: e.target.checked,
+                      })
+                    }
+                  />
+                  <span className="min-w-0">
+                    Contatado sobre a atualização do uso do sangue
+                    {contato && (
+                      <span className="block text-gray-500">
+                        por {contato.marcado_por_nome ?? '—'} · {formatDateTime(contato.marcado_em)}
+                      </span>
+                    )}
                   </span>
-                </div>
+                </label>
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -373,7 +452,11 @@ function DetalheModal({
       <div className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-5 shadow-xl">
         <div className="flex items-start gap-3">
           {medico.foto_url ? (
-            <img src={medico.foto_url} alt="" className="size-16 shrink-0 rounded-full object-cover" />
+            <img
+              src={medico.foto_url}
+              alt=""
+              className="size-16 shrink-0 rounded-full object-cover"
+            />
           ) : (
             <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xl font-medium text-gray-400">
               {medico.nome.charAt(0).toUpperCase()}
@@ -386,7 +469,9 @@ function DetalheModal({
               {medico.subespecialidade ? ` · ${medico.subespecialidade}` : ''}
             </p>
             <p className="mt-1 text-sm text-amber-600">
-              {medico.rating != null ? `${'★'.repeat(Math.round(medico.rating))} (${medico.rating}/6)` : 'Sem avaliação'}
+              {medico.rating != null
+                ? `${'★'.repeat(Math.round(medico.rating))} (${medico.rating}/6)`
+                : 'Sem avaliação'}
             </p>
           </div>
         </div>

@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { normalize } from '@/lib/text';
-import type { MedicoInsert, MedicoRow, MedicoUpdate } from '@/types/database';
+import type {
+  MedicoContatoSangueRow,
+  MedicoInsert,
+  MedicoRow,
+  MedicoUpdate,
+} from '@/types/database';
 
 export interface MedicosFilter {
   search?: string;
@@ -85,4 +90,21 @@ export async function getMedicosTotalCasos(): Promise<Map<string, number>> {
 
 export function totalCasosDe(mapa: Map<string, number>, nome: string): number {
   return mapa.get(normalize(nome)) ?? 0;
+}
+
+/** Campanha do sangue: quem já foi contatado, indexado por medico_id. */
+export async function getContatosSangue(): Promise<Map<string, MedicoContatoSangueRow>> {
+  const { data, error } = await supabase.from('medicos_contato_sangue').select('*');
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.medico_id, r]));
+}
+
+/** Marca/desmarca. Quem marcou e quando são preenchidos pelo banco. */
+export async function setContatoSangue(medicoId: string, contatado: boolean): Promise<void> {
+  const { error } = contatado
+    ? await supabase
+        .from('medicos_contato_sangue')
+        .upsert({ medico_id: medicoId }, { onConflict: 'medico_id', ignoreDuplicates: true })
+    : await supabase.from('medicos_contato_sangue').delete().eq('medico_id', medicoId);
+  if (error) throw error;
 }

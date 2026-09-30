@@ -331,6 +331,13 @@ export type EspecialidadeMedicaRow = {
   created_at: string;
 };
 
+export type MedicoContatoSangueRow = {
+  medico_id: string;
+  marcado_por: string | null;
+  marcado_por_nome: string | null;
+  marcado_em: string;
+};
+
 export type MedicoRow = {
   id: string;
   nome: string;
@@ -452,6 +459,12 @@ export type Database = {
         Row: MedicoRow;
         Insert: MedicoInsert;
         Update: MedicoUpdate;
+        Relationships: [];
+      };
+      medicos_contato_sangue: {
+        Row: MedicoContatoSangueRow;
+        Insert: Pick<MedicoContatoSangueRow, 'medico_id'>;
+        Update: Partial<Pick<MedicoContatoSangueRow, 'medico_id'>>;
         Relationships: [];
       };
       medicos_geral: {
