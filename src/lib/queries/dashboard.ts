@@ -6,7 +6,6 @@ export interface CasosStats {
   ultimos30Dias: number;
   ultimos6Meses: number;
   transpac: number;
-  transfundidos: number;
 }
 
 async function countHead(build: (q: ReturnType<typeof base>) => ReturnType<typeof base>) {
@@ -25,15 +24,14 @@ export async function getCasosStats(): Promise<CasosStats> {
   const trintaDiasAtras = new Date();
   trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
 
-  const [total, ultimos30Dias, ultimos6Meses, transpac, transfundidos] = await Promise.all([
+  const [total, ultimos30Dias, ultimos6Meses, transpac] = await Promise.all([
     countHead((q) => q),
     countHead((q) => q.gte('aberto_em', trintaDiasAtras.toISOString())),
     countHead((q) => q.gte('aberto_em', seisMesesAtras.toISOString())),
     countHead((q) => q.eq('transpac', true)),
-    countHead((q) => q.eq('transfundido', true)),
   ]);
 
-  return { total, ultimos30Dias, ultimos6Meses, transpac, transfundidos };
+  return { total, ultimos30Dias, ultimos6Meses, transpac };
 }
 
 export interface EspecialidadeContagem {

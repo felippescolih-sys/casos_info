@@ -197,11 +197,10 @@ function StatsRow() {
         : undefined,
     },
     { label: 'Transpac', value: data?.transpac.toString() },
-    { label: 'Transfundidos', value: data?.transfundidos.toString() },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {tiles.map((t) => (
         <Card key={t.label}>
           <CardBody className="p-4">
