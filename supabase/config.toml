@@ -15,3 +15,8 @@ major_version = 15
 # — autenticação é por segredo compartilhado (header x-webhook-secret), não JWT de usuário.
 [functions.enviar-wapi]
 verify_jwt = false
+
+# agente-midia é chamada só pelo n8n (agente de WhatsApp) com a chave secreta do projeto (sb_secret_, que não é JWT);
+# a própria função confere a chave.
+[functions.agente-midia]
+verify_jwt = false
