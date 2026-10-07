@@ -1,4 +1,4 @@
-// Edge Function `enviar-wapi`
+// Edge Function `enviar-wapi` (o nome ficou da época da w-api; envia pelo provedor de WHATSAPP_PROVEDOR)
 //
 // Chamada só por dentro do Postgres (trigger de transferência + pg_cron de escalas),
 // nunca pelo frontend — por isso verify_jwt=false no config.toml e autenticação por
@@ -11,10 +11,8 @@
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { enviarTexto } from '../_shared/whatsapp.ts';
 
-const WAPI_BASE_URL = Deno.env.get('WAPI_BASE_URL')!;
-const WAPI_INSTANCE_ID = Deno.env.get('WAPI_INSTANCE_ID')!;
-const WAPI_TOKEN = Deno.env.get('WAPI_TOKEN')!;
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')!;
 
 const supabase = createClient(
@@ -29,28 +27,9 @@ const fmtDataHora = (iso: string) =>
     timeStyle: 'short',
   }).format(new Date(iso));
 
-// Normaliza pra DDI+DDD+número só dígitos. tel_zap nem sempre tem o 55 na frente.
-function normalizarTelefone(raw: string | null | undefined): string | null {
-  const digits = (raw ?? '').replace(/\D/g, '');
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  if (digits.length === 12 || digits.length === 13) return digits;
-  return digits.length >= 10 ? digits : null;
-}
-
+// Provedor (w-api ou WAHA) decidido pelo secret WHATSAPP_PROVEDOR — ver _shared/whatsapp.ts.
 async function enviarWhatsapp(rawPhone: string | null | undefined, message: string) {
-  const phone = normalizarTelefone(rawPhone);
-  if (!phone) return;
-  const res = await fetch(
-    `${WAPI_BASE_URL}/v1/message/send-text?instanceId=${WAPI_INSTANCE_ID}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WAPI_TOKEN}` },
-      body: JSON.stringify({ phone, message }),
-    },
-  );
-  if (!res.ok) {
-    console.error('w-api send-text falhou', res.status, await res.text());
-  }
+  await enviarTexto({ telefone: rawPhone }, message);
 }
 
 async function notificarTransferencia(casoId: string) {

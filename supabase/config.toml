@@ -25,3 +25,11 @@ verify_jwt = false
 # a função confere os dois — o JWT ela valida e exige superadmin.
 [functions.whatsapp-sessao]
 verify_jwt = false
+
+# whatsapp-enviar é chamada pelo n8n com a chave secreta do projeto (sb_secret_, não JWT); a função confere.
+[functions.whatsapp-enviar]
+verify_jwt = false
+
+# whatsapp-entrada é o webhook do WAHA (sessão colih): autentica pelo segredo na query (?s=).
+[functions.whatsapp-entrada]
+verify_jwt = false

@@ -2,19 +2,21 @@
 //
 // Chamada só pelo n8n (agente de WhatsApp da VPS), com a chave secreta do projeto no Authorization — por isso
 // verify_jwt=false no config.toml (a chave sb_secret_ não é JWT) e a conferência é feita aqui.
-// O binário nunca passa pelo n8n nem pelo modelo: esta função baixa da w-api e devolve só texto.
+// O binário nunca passa pelo n8n nem pelo modelo: esta função baixa da w-api ou do WAHA e devolve só texto.
 //
 // Ações (POST JSON):
 //   { "acao": "processar", "membro_id", "message_id", "tipo": "audioMessage" | "imageMessage" | "documentMessage" | ...,
-//     "mediaKey", "directPath", "mimetype", "fileLength", "seconds", "fileName", "caption" }
+//     "mediaKey", "directPath" (w-api) ou "url" (WAHA), "mimetype", "fileLength", "seconds", "fileName", "caption" }
 //     → { texto }  — o que o agente deve "ler" no lugar da mídia
 //       áudio: transcrito na OpenAI (não é guardado);
 //       arquivo: guardado em `casos/pendentes/<membro>/...` por 24 h, esperando o membro dizer de qual caso é.
 //   { "acao": "anexar", "membro_id", "id_caso", "arquivo_id"? } → move para `casos/<caso_id>/...` + caso_anexos.
 //
-// Secrets: WAPI_BASE_URL (sem /v1), WAPI_INSTANCE_ID, WAPI_TOKEN, OPENAI_API_KEY.
+// Secrets: WAPI_BASE_URL (sem /v1), WAPI_INSTANCE_ID, WAPI_TOKEN, WAHA_URL, WAHA_API_KEY, OPENAI_API_KEY.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { chaveDoProjeto } from '../_shared/chave.ts';
+import { baixarDoWaha } from '../_shared/whatsapp.ts';
 
 const WAPI_BASE_URL = Deno.env.get('WAPI_BASE_URL')!;
 const WAPI_INSTANCE_ID = Deno.env.get('WAPI_INSTANCE_ID')!;
@@ -53,23 +55,6 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-// Aceita a service_role (JWT) ou qualquer chave secreta nova (sb_secret_) do projeto.
-function autorizado(req: Request) {
-  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
-  if (!token) return false;
-  const validas = new Set<string>();
-  const sr = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (sr) validas.add(sr);
-  try {
-    const coletar = (v: unknown): void => {
-      if (typeof v === 'string') validas.add(v);
-      else if (v && typeof v === 'object') Object.values(v).forEach(coletar);
-    };
-    coletar(JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}'));
-  } catch { /* sem chaves novas */ }
-  return validas.has(token);
-}
-
 // w-api: descriptografa a mídia do WhatsApp e devolve um link temporário (60 min, sem token).
 async function baixarDaWapi(p: Record<string, unknown>) {
   const tipo = TIPO_WAPI[String(p.tipo)] ?? 'document';
@@ -84,6 +69,10 @@ async function baixarDaWapi(p: Record<string, unknown>) {
   if (!arq.ok) throw new Error(`w-api fileLink: ${arq.status}`);
   return new Uint8Array(await arq.arrayBuffer());
 }
+
+// Mídia que chegou pelo WAHA traz `url` (arquivo já baixado por ele); pela w-api, mediaKey/directPath.
+const baixar = (p: Record<string, unknown>) =>
+  typeof p.url === 'string' && p.url ? baixarDoWaha(p.url) : baixarDaWapi(p);
 
 async function transcrever(audio: Uint8Array, mimetype: string) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY não configurada');
@@ -127,7 +116,7 @@ async function processar(p: Record<string, unknown>) {
       return `[O usuário enviou um áudio de ${Math.round(seg / 60)} minutos, acima do limite de 5 minutos. ` +
         'Peça para dividir em áudios menores ou escrever.]';
     }
-    const texto = await transcrever(await baixarDaWapi(p), String(p.mimetype ?? 'audio/ogg'));
+    const texto = await transcrever(await baixar(p), String(p.mimetype ?? 'audio/ogg'));
     if (!texto) return '[O usuário enviou um áudio, mas não foi possível entender o que foi dito. Peça para repetir ou escrever.]';
     return '[ÁUDIO TRANSCRITO. A transcrição pode errar nomes e números: antes de gravar qualquer coisa no caso, ' +
       `resuma o que entendeu e peça confirmação.]\n${texto}`;
@@ -149,7 +138,7 @@ async function processar(p: Record<string, unknown>) {
     let id = existente?.id as string | undefined;
     let nome = existente?.nome as string | undefined;
     if (!id) {
-      const bytes = await baixarDaWapi(p);
+      const bytes = await baixar(p);
       nome = String(p.fileName ?? '').trim() ||
         `${ACEITOS[mimetype] === 'foto' ? 'foto' : 'arquivo'}_${new Date().toISOString().slice(0, 10)}.${EXTENSAO[mimetype] ?? 'bin'}`;
       const path = `pendentes/${p.membro_id}/${Date.now()}-${nomeSeguro(nome)}`;
@@ -196,7 +185,7 @@ async function anexar(p: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'use POST' });
-  if (!autorizado(req)) return json(401, { error: 'não autorizado' });
+  if (!chaveDoProjeto(req)) return json(401, { error: 'não autorizado' });
   let p: Record<string, unknown>;
   try { p = await req.json(); } catch { return json(400, { error: 'corpo não é JSON' }); }
   if (!p.membro_id) return json(400, { error: 'membro_id obrigatório' });
