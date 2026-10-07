@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
 import { cn } from '@/lib/cn';
 import { CompletarPerfilDialog } from '@/components/CompletarPerfilDialog';
+import { getWhatsappSessao } from '@/lib/queries/whatsapp';
 import { UserMenu } from './UserMenu';
 
 interface NavItem {
@@ -22,6 +24,7 @@ const NAV: NavItem[] = [
   { to: '/membros', label: 'Membros', colih: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },
   { to: '/hospitais', label: 'Hospitais', colih: true },
+  { to: '/whatsapp', label: 'WhatsApp', adminGeral: true },
 ];
 
 export function AppShell() {
@@ -93,10 +96,35 @@ export function AppShell() {
             <UserMenu />
           </div>
         </header>
+        {isAdminGeral && <AvisoWhatsapp />}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Faixa para superadmin quando o WhatsApp da COLIH caiu. Lê o estado que a verificação
+ * periódica grava (a cada 2 min); o aviso por WhatsApp sai pelo número da F7, mas só chega
+ * se o WAHA estiver de pé — esta faixa é o que sobra quando nem isso funciona.
+ */
+function AvisoWhatsapp() {
+  const { pathname } = useLocation();
+  const { data } = useQuery({
+    queryKey: ['whatsapp', 'sessao'],
+    queryFn: getWhatsappSessao,
+    refetchInterval: 60_000,
+  });
+  // alerta_enviado_em, não caiu_em: só depois da tolerância de 5 min, como o aviso por WhatsApp.
+  if (!data?.alerta_enviado_em || pathname === '/whatsapp') return null;
+  return (
+    <div className="bg-red-600 px-4 py-2 text-sm text-white">
+      O WhatsApp da COLIH está desconectado — as mensagens automáticas não estão saindo.{' '}
+      <Link to="/whatsapp" className="font-semibold underline">
+        Reconectar
+      </Link>
     </div>
   );
 }

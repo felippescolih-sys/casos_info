@@ -72,6 +72,19 @@ export type MembroAusenciaRow = {
 export type MembroAusenciaInsert = Omit<MembroAusenciaRow, 'id' | 'created_at'> &
   Partial<Pick<MembroAusenciaRow, 'id' | 'created_at'>>;
 
+export type WhatsappSessaoRow = {
+  id: number;
+  status: string;
+  numero: string | null;
+  verificado_em: string | null;
+  conectado_em: string | null;
+  caiu_em: string | null;
+  alerta_enviado_em: string | null;
+  desconectado_por: string | null;
+  desconectado_em: string | null;
+  ultimo_erro: string | null;
+};
+
 export type MembroFuncaoRow = {
   membro_id: string;
   area: Area;
@@ -436,6 +449,12 @@ export type Database = {
         Row: MembroAusenciaRow;
         Insert: MembroAusenciaInsert;
         Update: Partial<MembroAusenciaRow>;
+        Relationships: [];
+      };
+      whatsapp_sessao: {
+        Row: WhatsappSessaoRow;
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       escalas: {

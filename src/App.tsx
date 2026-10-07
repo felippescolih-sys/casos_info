@@ -23,11 +23,13 @@ import { EscalasPage } from '@/pages/escalas/EscalasPage';
 import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 import { MedicosPage } from '@/pages/medicos/MedicosPage';
 import { ChamadasPage } from '@/pages/chamadas/ChamadasPage';
+import { WhatsappPage } from '@/pages/whatsapp/WhatsappPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
 // Em todas elas quem pode editar é filtrado dentro da própria página.
 const canSeeColih = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
+const isSuperadmin = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
 
 export default function App() {
   return (
@@ -102,6 +104,14 @@ export default function App() {
           element={
             <RequireAuth canAccess={canSeeColih}>
               <ChamadasPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/whatsapp"
+          element={
+            <RequireAuth canAccess={isSuperadmin}>
+              <WhatsappPage />
             </RequireAuth>
           }
         />

@@ -20,3 +20,8 @@ verify_jwt = false
 # a própria função confere a chave.
 [functions.agente-midia]
 verify_jwt = false
+
+# whatsapp-sessao é chamada pelo pg_cron (x-webhook-secret) e pela tela /whatsapp (JWT do usuário);
+# a função confere os dois — o JWT ela valida e exige superadmin.
+[functions.whatsapp-sessao]
+verify_jwt = false
