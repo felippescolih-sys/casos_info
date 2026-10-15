@@ -33,6 +33,17 @@ export async function listMembrosColihAtivos(): Promise<MembroOpcao[]> {
   return data ?? [];
 }
 
+/** Todos os membros ativos, por nome — transferência livre de caso pelo superadmin. */
+export async function listMembrosAtivos(): Promise<MembroOpcao[]> {
+  const { data, error } = await supabase
+    .from('membros')
+    .select('id, nome')
+    .eq('status', 'ativo')
+    .order('nome', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 /** Confere no banco (mesma regra que bloqueia ao salvar) se o membro está disponível
  * pra plantão no período — ausência registrada + dias da semana + regra de fim de mês. */
 export async function membroDisponivelPlantao(

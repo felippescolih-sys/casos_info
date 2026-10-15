@@ -11,9 +11,11 @@ import {
   recusarTransferencia,
   transferirCaso,
 } from '@/lib/queries/casos';
-import { getFilasEspecialidade } from '@/lib/queries/membros';
+import { getFilasEspecialidade, listMembrosAtivos } from '@/lib/queries/membros';
 import { getEscalaAtual } from '@/lib/queries/escalas';
 import { boolLabel, formatDateTime } from '@/lib/format';
+import { normalize } from '@/lib/text';
+import { Input } from '@/components/ui/Input';
 import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -591,6 +593,8 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
         <TransferDialog
           casoId={c.id}
           excluir={[c.responsavel_id, membro?.id].filter(Boolean) as string[]}
+          responsavelId={c.responsavel_id}
+          qualquerMembro={isAdminGeral}
           onClose={() => setDialog(null)}
           onDone={onChanged}
         />
@@ -626,11 +630,16 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
 function TransferDialog({
   casoId,
   excluir,
+  responsavelId,
+  qualquerMembro,
   onClose,
   onDone,
 }: {
   casoId: string;
   excluir: string[];
+  responsavelId: string | null;
+  /** SuperAdmin: além das filas, pode mandar pra qualquer membro ativo. */
+  qualquerMembro: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -647,8 +656,21 @@ function TransferDialog({
     queryFn: () => getFilasEspecialidade(excluir),
   });
 
+  const [busca, setBusca] = useState('');
+  const { data: todos } = useQuery({
+    queryKey: ['membros-ativos'],
+    queryFn: listMembrosAtivos,
+    enabled: qualquerMembro,
+  });
+  const termo = normalize(busca);
+  const encontrados = termo
+    ? (todos ?? [])
+        .filter((m) => m.id !== responsavelId && normalize(m.nome).includes(termo))
+        .slice(0, 8)
+    : [];
+
   const mut = useMutation({
-    mutationFn: ({ novo, area }: { novo: string; area: AreaEspecialidade }) =>
+    mutationFn: ({ novo, area }: { novo: string; area: AreaEspecialidade | null }) =>
       transferirCaso(casoId, novo, area),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['filas-especialidade'] });
@@ -659,7 +681,7 @@ function TransferDialog({
     onSettled: () => setEnviandoPara(null),
   });
 
-  function escolher(novo: string, area: AreaEspecialidade) {
+  function escolher(novo: string, area: AreaEspecialidade | null) {
     setErro(null);
     setEnviandoPara(novo);
     mut.mutate({ novo, area });
@@ -710,7 +732,7 @@ function TransferDialog({
             <div className="flex justify-center py-8 text-gray-400">
               <Spinner className="size-6" />
             </div>
-          ) : !areasComFila.length ? (
+          ) : !areasComFila.length && !qualquerMembro ? (
             <p className="text-center text-sm text-gray-500">
               Nenhum membro disponível pra transferência.
             </p>
@@ -736,6 +758,34 @@ function TransferDialog({
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {qualquerMembro && (
+            <div className="mt-6 border-t border-gray-200 pt-5">
+              <h3 className="mb-2 text-center text-sm font-semibold text-gray-700">
+                Qualquer membro
+              </h3>
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar pelo nome…"
+              />
+              <div className="mt-2 space-y-2">
+                {encontrados.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    disabled={mut.isPending}
+                    onClick={() => escolher(m.id, null)}
+                    className="flex w-full items-center justify-center rounded-md bg-slate-500 px-3 py-2.5 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-60"
+                  >
+                    {enviandoPara === m.id ? 'Enviando…' : m.nome}
+                  </button>
+                ))}
+                {termo && !encontrados.length && (
+                  <p className="text-center text-sm text-gray-500">Nenhum membro encontrado.</p>
+                )}
+              </div>
             </div>
           )}
         </div>
