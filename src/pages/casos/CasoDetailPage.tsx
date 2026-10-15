@@ -573,7 +573,8 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
             variant="secondary"
             size="sm"
             onClick={() => setDialog('transferir')}
-            disabled={!!c.transferencia_pendente_para}
+            // SuperAdmin pode refazer uma transferência ainda não aceita (substitui o destinatário).
+            disabled={!!c.transferencia_pendente_para && !isAdminGeral}
           >
             Transferir
           </Button>
@@ -595,6 +596,7 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
           excluir={[c.responsavel_id, membro?.id].filter(Boolean) as string[]}
           responsavelId={c.responsavel_id}
           qualquerMembro={isAdminGeral}
+          substituiPendente={!!c.transferencia_pendente_para}
           onClose={() => setDialog(null)}
           onDone={onChanged}
         />
@@ -632,6 +634,7 @@ function TransferDialog({
   excluir,
   responsavelId,
   qualquerMembro,
+  substituiPendente,
   onClose,
   onDone,
 }: {
@@ -640,6 +643,7 @@ function TransferDialog({
   responsavelId: string | null;
   /** SuperAdmin: além das filas, pode mandar pra qualquer membro ativo. */
   qualquerMembro: boolean;
+  substituiPendente: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -715,6 +719,14 @@ function TransferDialog({
           <p className="mb-4 text-sm text-gray-500">
             O novo responsável precisa aceitar a transferência para assumir o caso.
           </p>
+          {substituiPendente && (
+            <div className="mb-3">
+              <Alert tone="warning">
+                Já existe uma transferência aguardando aceite. Escolher alguém aqui substitui a
+                anterior.
+              </Alert>
+            </div>
+          )}
           {erro && (
             <div className="mb-3">
               <Alert tone="error">{erro}</Alert>
