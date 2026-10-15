@@ -2,25 +2,22 @@
 //
 // Chamada só pelo n8n (agente de WhatsApp da VPS), com a chave secreta do projeto no Authorization — por isso
 // verify_jwt=false no config.toml (a chave sb_secret_ não é JWT) e a conferência é feita aqui.
-// O binário nunca passa pelo n8n nem pelo modelo: esta função baixa da w-api ou do WAHA e devolve só texto.
+// O binário nunca passa pelo n8n nem pelo modelo: esta função baixa do WAHA e devolve só texto.
 //
 // Ações (POST JSON):
 //   { "acao": "processar", "membro_id", "message_id", "tipo": "audioMessage" | "imageMessage" | "documentMessage" | ...,
-//     "mediaKey", "directPath" (w-api) ou "url" (WAHA), "mimetype", "fileLength", "seconds", "fileName", "caption" }
+//     "url" (WAHA), "mimetype", "fileLength", "seconds", "fileName", "caption" }
 //     → { texto }  — o que o agente deve "ler" no lugar da mídia
 //       áudio: transcrito na OpenAI (não é guardado);
 //       arquivo: guardado em `casos/pendentes/<membro>/...` por 24 h, esperando o membro dizer de qual caso é.
 //   { "acao": "anexar", "membro_id", "id_caso", "arquivo_id"? } → move para `casos/<caso_id>/...` + caso_anexos.
 //
-// Secrets: WAPI_BASE_URL (sem /v1), WAPI_INSTANCE_ID, WAPI_TOKEN, WAHA_URL, WAHA_API_KEY, OPENAI_API_KEY.
+// Secrets: WAHA_URL, WAHA_API_KEY, OPENAI_API_KEY.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { chaveDoProjeto } from '../_shared/chave.ts';
 import { baixarDoWaha } from '../_shared/whatsapp.ts';
 
-const WAPI_BASE_URL = Deno.env.get('WAPI_BASE_URL')!;
-const WAPI_INSTANCE_ID = Deno.env.get('WAPI_INSTANCE_ID')!;
-const WAPI_TOKEN = Deno.env.get('WAPI_TOKEN')!;
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 const BUCKET = 'casos';
 
@@ -45,34 +42,19 @@ const EXTENSAO: Record<string, string> = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
 };
-const TIPO_WAPI: Record<string, string> = {
-  audioMessage: 'audio', imageMessage: 'image', documentMessage: 'document', documentWithCaptionMessage: 'document',
-  videoMessage: 'video', stickerMessage: 'sticker',
-};
+// Tipos que o whatsapp-entrada repassa (nomes herdados da w-api); vídeo e figurinha são recusados.
+const TIPOS_ARQUIVO = new Set(['imageMessage', 'documentMessage', 'documentWithCaptionMessage']);
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-// w-api: descriptografa a mídia do WhatsApp e devolve um link temporário (60 min, sem token).
-async function baixarDaWapi(p: Record<string, unknown>) {
-  const tipo = TIPO_WAPI[String(p.tipo)] ?? 'document';
-  const res = await fetch(`${WAPI_BASE_URL}/v1/message/download-media?instanceId=${WAPI_INSTANCE_ID}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WAPI_TOKEN}` },
-    body: JSON.stringify({ mediaKey: p.mediaKey, directPath: p.directPath, type: tipo, mimetype: p.mimetype }),
-  });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok || j.error || !j.fileLink) throw new Error(`w-api download-media: ${res.status} ${j.message ?? ''}`.trim());
-  const arq = await fetch(j.fileLink);
-  if (!arq.ok) throw new Error(`w-api fileLink: ${arq.status}`);
-  return new Uint8Array(await arq.arrayBuffer());
-}
-
-// Mídia que chegou pelo WAHA traz `url` (arquivo já baixado por ele); pela w-api, mediaKey/directPath.
-const baixar = (p: Record<string, unknown>) =>
-  typeof p.url === 'string' && p.url ? baixarDoWaha(p.url) : baixarDaWapi(p);
+// A mídia chega com a `url` do arquivo que o WAHA já baixou.
+const baixar = (p: Record<string, unknown>) => {
+  if (typeof p.url !== 'string' || !p.url) throw new Error('mídia sem url do WAHA');
+  return baixarDoWaha(p.url);
+};
 
 async function transcrever(audio: Uint8Array, mimetype: string) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY não configurada');
@@ -122,7 +104,7 @@ async function processar(p: Record<string, unknown>) {
       `resuma o que entendeu e peça confirmação.]\n${texto}`;
   }
 
-  if (tipo in TIPO_WAPI && !['videoMessage', 'stickerMessage'].includes(tipo)) {
+  if (TIPOS_ARQUIVO.has(tipo)) {
     if (!ACEITOS[mimetype]) {
       return `[O usuário enviou um arquivo do tipo ${mimetype || 'desconhecido'}, que não pode ser anexado ao caso. ` +
         'Diga que dá para anexar PDF, foto e documentos Word ou Excel.]';

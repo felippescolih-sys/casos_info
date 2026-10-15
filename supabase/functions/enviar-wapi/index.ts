@@ -1,4 +1,4 @@
-// Edge Function `enviar-wapi` (o nome ficou da época da w-api; envia pelo provedor de WHATSAPP_PROVEDOR)
+// Edge Function `enviar-wapi` (o nome ficou da época da w-api; envia pelo WAHA)
 //
 // Chamada só por dentro do Postgres (trigger de transferência + pg_cron de escalas),
 // nunca pelo frontend — por isso verify_jwt=false no config.toml e autenticação por
@@ -27,7 +27,6 @@ const fmtDataHora = (iso: string) =>
     timeStyle: 'short',
   }).format(new Date(iso));
 
-// Provedor (w-api ou WAHA) decidido pelo secret WHATSAPP_PROVEDOR — ver _shared/whatsapp.ts.
 async function enviarWhatsapp(rawPhone: string | null | undefined, message: string) {
   await enviarTexto({ telefone: rawPhone }, message);
 }

@@ -13,8 +13,8 @@
 // conferida aqui dentro.
 //
 // O aviso de queda sai pelo número da F7 (sessão WAHA_SESSAO_ALERTA no mesmo WAHA), já que
-// o número da COLIH é justamente o que caiu. Se o WAHA inteiro estiver fora, tenta a w-api
-// enquanto os secrets dela existirem; depois da migração, sobra a faixa vermelha no app.
+// o número da COLIH é justamente o que caiu. Se o WAHA inteiro estiver fora, sobra a faixa
+// vermelha no app.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -25,9 +25,6 @@ const WAHA_API_KEY = Deno.env.get('WAHA_API_KEY') ?? '';
 const SESSAO = Deno.env.get('WAHA_SESSAO') ?? 'colih';
 const SESSAO_ALERTA = Deno.env.get('WAHA_SESSAO_ALERTA') ?? 'f7';
 const APP_URL = (Deno.env.get('APP_URL') ?? 'https://casosinfo.com.br').replace(/\/$/, '');
-const WAPI_BASE_URL = Deno.env.get('WAPI_BASE_URL');
-const WAPI_INSTANCE_ID = Deno.env.get('WAPI_INSTANCE_ID');
-const WAPI_TOKEN = Deno.env.get('WAPI_TOKEN');
 
 // Fora do ar por menos que isso não avisa ninguém: um restart do container leva segundos.
 const TOLERANCIA_MS = 5 * 60_000;
@@ -93,8 +90,8 @@ async function lerEstado(): Promise<Estado> {
   }
 }
 
-// Cria a sessão se ainda não existe e liga. Sem webhook: enquanto a w-api for o canal oficial,
-// o WAHA só fica conectado. O webhook entra na virada (configurado no servidor, não por aqui).
+// Cria a sessão se ainda não existe e liga. O webhook para o whatsapp-entrada é configurado no
+// servidor, não por aqui: uma sessão criada do zero precisa dele de novo.
 async function iniciar() {
   const atual = await lerEstado();
   if (atual.status === 'INACESSIVEL') throw new Error(`WAHA fora do ar: ${atual.erro}`);
@@ -187,20 +184,6 @@ async function enviarAlerta(telefone: string, texto: string): Promise<boolean> {
     }
   } catch (e) {
     console.error('alerta pelo WAHA falhou', e);
-  }
-  // WAHA inteiro fora: a w-api é outra porta para o mesmo número da COLIH e pode estar de pé.
-  if (!WAPI_BASE_URL || !WAPI_INSTANCE_ID || !WAPI_TOKEN) return false;
-  try {
-    const r = await fetch(`${WAPI_BASE_URL}/v1/message/send-text?instanceId=${WAPI_INSTANCE_ID}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WAPI_TOKEN}` },
-      body: JSON.stringify({ phone: telefone, message: texto }),
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (r.ok) return true;
-    console.error('alerta pela w-api falhou', r.status, (await r.text()).slice(0, 200));
-  } catch (e) {
-    console.error('alerta pela w-api falhou', e);
   }
   return false;
 }

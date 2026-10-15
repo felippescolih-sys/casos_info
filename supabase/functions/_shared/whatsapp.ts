@@ -1,25 +1,10 @@
-// Envio de WhatsApp com dois provedores: w-api (atual) e WAHA (sessão `colih` na VPS).
+// Envio de WhatsApp pelo WAHA (sessão `colih` na VPS). A w-api foi desligada em 08/10/2026.
 //
-// O provedor dos avisos automáticos vem do secret WHATSAPP_PROVEDOR ('wapi' por padrão; a virada
-// é trocar para 'waha'). Resposta do agente passa o provedor explicitamente: responde pelo mesmo
-// caminho por onde a mensagem chegou, o que mantém a virada consistente mesmo no meio de uma conversa.
-//
-// Secrets: WAPI_BASE_URL (sem /v1), WAPI_INSTANCE_ID, WAPI_TOKEN; WAHA_URL, WAHA_API_KEY, WAHA_SESSAO.
+// Secrets: WAHA_URL, WAHA_API_KEY, WAHA_SESSAO.
 
-export type Provedor = 'wapi' | 'waha';
-
-const WAPI_BASE_URL = Deno.env.get('WAPI_BASE_URL') ?? '';
-const WAPI_INSTANCE_ID = Deno.env.get('WAPI_INSTANCE_ID') ?? '';
-const WAPI_TOKEN = Deno.env.get('WAPI_TOKEN') ?? '';
 export const WAHA_URL = (Deno.env.get('WAHA_URL') ?? '').replace(/\/$/, '');
 export const WAHA_API_KEY = Deno.env.get('WAHA_API_KEY') ?? '';
 export const WAHA_SESSAO = Deno.env.get('WAHA_SESSAO') ?? 'colih';
-
-export const provedorPadrao = (): Provedor =>
-  Deno.env.get('WHATSAPP_PROVEDOR') === 'waha' ? 'waha' : 'wapi';
-
-export const lerProvedor = (v: unknown): Provedor | undefined =>
-  v === 'waha' || v === 'wapi' ? v : undefined;
 
 /** Destino: telefone (qualquer formato) e/ou o chatId do WAHA de quem escreveu (ex.: `123@lid`). */
 export type Destino = { telefone?: string | null; chatId?: string | null };
@@ -70,76 +55,39 @@ async function falhou(onde: string, res: Response) {
   return false;
 }
 
-export async function enviarTexto(
-  destino: Destino,
-  texto: string,
-  provedor: Provedor = provedorPadrao(),
-): Promise<boolean> {
-  if (provedor === 'waha') {
-    const chatId = await chatIdWaha(destino);
-    if (!chatId) {
-      console.error('WAHA: número sem WhatsApp', destino.telefone);
-      return false;
-    }
-    const r = await wahaFetch('/api/sendText', {
-      method: 'POST',
-      body: JSON.stringify({ session: WAHA_SESSAO, chatId, text: texto }),
-    });
-    return r.ok || falhou('WAHA sendText', r);
+export async function enviarTexto(destino: Destino, texto: string): Promise<boolean> {
+  const chatId = await chatIdWaha(destino);
+  if (!chatId) {
+    console.error('WAHA: número sem WhatsApp', destino.telefone);
+    return false;
   }
-
-  const phone = normalizarTelefone(destino.telefone);
-  if (!phone) return false;
-  const r = await fetch(`${WAPI_BASE_URL}/v1/message/send-text?instanceId=${WAPI_INSTANCE_ID}`, {
+  const r = await wahaFetch('/api/sendText', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WAPI_TOKEN}` },
-    body: JSON.stringify({ phone, message: texto }),
+    body: JSON.stringify({ session: WAHA_SESSAO, chatId, text: texto }),
   });
-  return r.ok || falhou('w-api send-text', r);
+  return r.ok || falhou('WAHA sendText', r);
 }
 
-export async function enviarDocumento(
-  destino: Destino,
-  doc: Documento,
-  provedor: Provedor = provedorPadrao(),
-): Promise<boolean> {
-  const mimetype = doc.mimetype ?? 'application/pdf';
-  if (provedor === 'waha') {
-    const chatId = await chatIdWaha(destino);
-    if (!chatId) {
-      console.error('WAHA: número sem WhatsApp', destino.telefone);
-      return false;
-    }
-    const r = await wahaFetch(
-      '/api/sendFile',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          session: WAHA_SESSAO,
-          chatId,
-          caption: doc.legenda,
-          file: { mimetype, filename: doc.nomeArquivo, data: doc.base64 },
-        }),
-      },
-      60_000,
-    );
-    return r.ok || falhou('WAHA sendFile', r);
+export async function enviarDocumento(destino: Destino, doc: Documento): Promise<boolean> {
+  const chatId = await chatIdWaha(destino);
+  if (!chatId) {
+    console.error('WAHA: número sem WhatsApp', destino.telefone);
+    return false;
   }
-
-  const phone = normalizarTelefone(destino.telefone);
-  if (!phone) return false;
-  const r = await fetch(`${WAPI_BASE_URL}/v1/message/send-document?instanceId=${WAPI_INSTANCE_ID}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${WAPI_TOKEN}` },
-    body: JSON.stringify({
-      phone,
-      document: `data:${mimetype};base64,${doc.base64}`,
-      fileName: doc.nomeArquivo,
-      extension: doc.nomeArquivo.split('.').pop(),
-      caption: doc.legenda,
-    }),
-  });
-  return r.ok || falhou('w-api send-document', r);
+  const r = await wahaFetch(
+    '/api/sendFile',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        session: WAHA_SESSAO,
+        chatId,
+        caption: doc.legenda,
+        file: { mimetype: doc.mimetype ?? 'application/pdf', filename: doc.nomeArquivo, data: doc.base64 },
+      }),
+    },
+    60_000,
+  );
+  return r.ok || falhou('WAHA sendFile', r);
 }
 
 /** Baixa uma mídia recebida pelo WAHA. Só aceita URL do próprio WAHA (a chave vai no header). */
