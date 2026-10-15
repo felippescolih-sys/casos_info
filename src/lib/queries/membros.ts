@@ -143,22 +143,6 @@ type MembroEspecialidadeComMembro = {
   membro: { id: string; nome: string; status: string };
 };
 
-/** Quem está na frente da fila de "plantão" hoje (só informativo, não é alvo de transferência). */
-export async function getPlantaoAtual(): Promise<FilaMembro | null> {
-  const { data, error } = await supabase
-    .from('membro_especialidades')
-    .select('ordem, membro:membros!inner(id, nome, status)')
-    .eq('area_especialidade', 'plantao')
-    .eq('membro.status', 'ativo')
-    .order('ordem', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  const m = (data as unknown as MembroEspecialidadeComMembro).membro;
-  return { id: m.id, nome: m.nome };
-}
-
 /** Fila de transferência de cada especialidade clínica (exclui "plantão"), em ordem. */
 export async function getFilasEspecialidade(
   excluirIds: string[] = [],

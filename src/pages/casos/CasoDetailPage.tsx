@@ -11,7 +11,8 @@ import {
   recusarTransferencia,
   transferirCaso,
 } from '@/lib/queries/casos';
-import { getFilasEspecialidade, getPlantaoAtual } from '@/lib/queries/membros';
+import { getFilasEspecialidade } from '@/lib/queries/membros';
+import { getEscalaAtual } from '@/lib/queries/escalas';
 import { boolLabel, formatDateTime } from '@/lib/format';
 import { AREAS_ESPECIALIDADE, areaEspecialidadeLabel } from '@/lib/labels';
 import { AnexosUploader } from './AnexosUploader';
@@ -638,8 +639,8 @@ function TransferDialog({
   const [enviandoPara, setEnviandoPara] = useState<string | null>(null);
 
   const { data: plantao } = useQuery({
-    queryKey: ['plantao-atual'],
-    queryFn: getPlantaoAtual,
+    queryKey: ['escala-atual'],
+    queryFn: getEscalaAtual,
   });
   const { data: filas, isLoading } = useQuery({
     queryKey: ['filas-especialidade', excluir],
@@ -651,7 +652,6 @@ function TransferDialog({
       transferirCaso(casoId, novo, area),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['filas-especialidade'] });
-      void qc.invalidateQueries({ queryKey: ['plantao-atual'] });
       onDone();
       onClose();
     },
@@ -702,7 +702,7 @@ function TransferDialog({
             <div className="mb-5 text-center">
               <p className="mb-1 text-sm font-medium text-gray-600">Hoje no plantão:</p>
               <div className="rounded-md bg-green-800 px-3 py-2 text-sm font-medium text-white">
-                {plantao.nome}
+                {plantao.membro_nome}
               </div>
             </div>
           )}
