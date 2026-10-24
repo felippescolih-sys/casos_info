@@ -11,6 +11,7 @@
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
 //   - "escala_alterada": um plantão criado, editado ou excluído no app.
 //   - "escala_lote": vários plantões criados de uma vez; um aviso agrupado por membro.
+//   - "escala_lote_cancelada": vários plantões excluídos de uma vez; idem.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { enviarTexto } from '../_shared/whatsapp.ts';
@@ -198,10 +199,14 @@ async function notificarEscalaAlterada(
   }
 }
 
-// Escala gerada em lote (`criar_escalas_lote`): uma mensagem por membro listando
-// todos os turnos dele, em vez de uma por turno. A RPC só manda turnos que ainda
-// não acabaram, já em ordem de início.
-async function notificarEscalaLote(escalas: EscalaSnapshot[], autorId: string | null) {
+// Escala criada (`criar_escalas_lote`) ou excluída (`excluir_escalas_lote`) em lote:
+// uma mensagem por membro listando todos os turnos dele, em vez de uma por turno.
+// As RPCs só mandam turnos que ainda não acabaram, já em ordem de início.
+async function notificarEscalaLote(
+  escalas: EscalaSnapshot[],
+  autorId: string | null,
+  acao: 'criada' | 'cancelada',
+) {
   const ids = new Set<string>();
   for (const e of escalas) {
     ids.add(e.membro_id);
@@ -235,12 +240,22 @@ async function notificarEscalaLote(escalas: EscalaSnapshot[], autorId: string | 
     }
     if (!linhas.length) continue;
 
-    let msg =
-      linhas.length === 1
-        ? `Olá, ${m.nome}! Você foi designado(a) para o plantão de emergência:\n`
-        : `Olá, ${m.nome}! Você foi designado(a) para ${linhas.length} plantões de emergência:\n`;
+    let msg: string;
+    if (acao === 'criada') {
+      msg =
+        linhas.length === 1
+          ? `Olá, ${m.nome}! Você foi designado(a) para o plantão de emergência:\n`
+          : `Olá, ${m.nome}! Você foi designado(a) para ${linhas.length} plantões de emergência:\n`;
+    } else {
+      msg =
+        linhas.length === 1
+          ? `Olá, ${m.nome}! O plantão de emergência abaixo, em que você estava escalado(a), foi cancelado:\n`
+          : `Olá, ${m.nome}! Os ${linhas.length} plantões de emergência abaixo, em que você estava escalado(a), foram cancelados:\n`;
+    }
     msg += linhas.join('\n');
-    if (autor && autor.id !== m.id) msg += `\n\nEscala feita por ${autor.nome}.`;
+    if (autor && autor.id !== m.id) {
+      msg += acao === 'criada' ? `\n\nEscala feita por ${autor.nome}.` : `\n\nCancelamento feito por ${autor.nome}.`;
+    }
     await enviarWhatsapp(m.tel_zap, msg);
   }
 }
@@ -341,7 +356,9 @@ Deno.serve(async (req) => {
         body.autorId ?? null,
       );
     } else if (body.evento === 'escala_lote' && Array.isArray(body.escalas)) {
-      await notificarEscalaLote(body.escalas, body.autorId ?? null);
+      await notificarEscalaLote(body.escalas, body.autorId ?? null, 'criada');
+    } else if (body.evento === 'escala_lote_cancelada' && Array.isArray(body.escalas)) {
+      await notificarEscalaLote(body.escalas, body.autorId ?? null, 'cancelada');
     } else {
       return new Response('evento desconhecido', { status: 400 });
     }

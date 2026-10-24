@@ -7,6 +7,7 @@ import {
   atualizarEscala,
   criarEscala,
   excluirEscala,
+  excluirEscalasLote,
   listEscalas,
   type EscalaComNomes,
 } from '@/lib/queries/escalas';
@@ -34,6 +35,9 @@ export function EscalasPage() {
   const [filtroMembro, setFiltroMembro] = useState('');
   const [filtroDe, setFiltroDe] = useState('');
   const [filtroAte, setFiltroAte] = useState('');
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [confirmandoLote, setConfirmandoLote] = useState(false);
+  const [excluidasLote, setExcluidasLote] = useState<number | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['escalas'],
@@ -65,6 +69,27 @@ export function EscalasPage() {
   }, [data, filtroMembro, filtroDe, filtroAte]);
   const filtrando = !!(filtroMembro || filtroDe || filtroAte);
 
+  // Só conta a seleção que está na tela: marcar dezembro, trocar o filtro para
+  // janeiro e clicar em excluir não pode apagar dezembro sem a pessoa ver.
+  const selecionadasVisiveis = filtradas.filter((e) => selecionadas.has(e.id));
+  const todasMarcadas = filtradas.length > 0 && selecionadasVisiveis.length === filtradas.length;
+  const futurasSelecionadas = selecionadasVisiveis.filter(
+    (e) => new Date(e.fim).getTime() >= Date.now(),
+  ).length;
+
+  function marcar(id: string, ativo: boolean) {
+    setSelecionadas((s) => {
+      const novo = new Set(s);
+      if (ativo) novo.add(id);
+      else novo.delete(id);
+      return novo;
+    });
+  }
+
+  function marcarTodas(ativo: boolean) {
+    setSelecionadas(ativo ? new Set(filtradas.map((e) => e.id)) : new Set());
+  }
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ['escalas'] });
   // Destaca o plantão em andamento. Recalcula a cada render (refetch, foco na aba),
   // o que basta para uma virada de dia sem precisar de timer.
@@ -74,6 +99,17 @@ export function EscalasPage() {
     mutationFn: (id: string) => excluirEscala(id),
     onSuccess: () => {
       setExcluindo(null);
+      invalidate();
+    },
+  });
+
+  const excluirLote = useMutation({
+    mutationFn: (ids: string[]) => excluirEscalasLote(ids),
+    onSuccess: (n) => {
+      setConfirmandoLote(false);
+      setSelecionadas(new Set());
+      setCriadasLote(null);
+      setExcluidasLote(n);
       invalidate();
     },
   });
@@ -100,6 +136,12 @@ export function EscalasPage() {
         <Alert tone="success">
           {criadasLote} {criadasLote === 1 ? 'escala criada' : 'escalas criadas'}. Os escalados
           foram avisados no WhatsApp.
+        </Alert>
+      )}
+      {excluidasLote !== null && (
+        <Alert tone="success">
+          {excluidasLote} {excluidasLote === 1 ? 'escala excluída' : 'escalas excluídas'}. Quem
+          estava nos plantões futuros foi avisado do cancelamento no WhatsApp.
         </Alert>
       )}
 
@@ -152,6 +194,21 @@ export function EscalasPage() {
         </div>
       )}
 
+      {gerenciaEscalas && selecionadasVisiveis.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-4 py-2 text-sm text-red-900 ring-1 ring-inset ring-red-200">
+          <span>
+            {selecionadasVisiveis.length}{' '}
+            {selecionadasVisiveis.length === 1 ? 'escala selecionada' : 'escalas selecionadas'}
+          </span>
+          <Button size="sm" variant="danger" onClick={() => setConfirmandoLote(true)}>
+            Excluir selecionadas
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => marcarTodas(false)}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
+
       <Card className="overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center p-8 text-gray-400">
@@ -168,6 +225,17 @@ export function EscalasPage() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <tr>
+                  {gerenciaEscalas && (
+                    <th className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label="Selecionar todas as escalas da lista"
+                        className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
+                        checked={todasMarcadas}
+                        onChange={(ev) => marcarTodas(ev.target.checked)}
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3">Dia</th>
                   <th className="px-4 py-3">Início</th>
                   <th className="px-4 py-3">Fim</th>
@@ -187,6 +255,17 @@ export function EscalasPage() {
                       key={e.id}
                       className={atual ? 'bg-brand-50 font-medium text-brand-900' : 'hover:bg-gray-50'}
                     >
+                      {gerenciaEscalas && (
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            aria-label={`Selecionar escala de ${formatDateTime(e.inicio)}`}
+                            className="size-4 rounded border-gray-300 text-brand-700 focus:ring-brand-600"
+                            checked={selecionadas.has(e.id)}
+                            onChange={(ev) => marcar(e.id, ev.target.checked)}
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3 capitalize">
                         {diaInicio === diaFim ? diaInicio : `${diaInicio} → ${diaFim}`}
                       </td>
@@ -248,10 +327,40 @@ export function EscalasPage() {
           onSaved={(n) => {
             setLote(false);
             setCriadasLote(n);
+            setExcluidasLote(null);
             invalidate();
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmandoLote}
+        title="Excluir escalas selecionadas"
+        danger
+        confirmLabel={`Excluir ${selecionadasVisiveis.length}`}
+        loading={excluirLote.isPending}
+        onConfirm={() => excluirLote.mutate(selecionadasVisiveis.map((e) => e.id))}
+        onCancel={() => {
+          setConfirmandoLote(false);
+          excluirLote.reset();
+        }}
+      >
+        <p>
+          Remove {selecionadasVisiveis.length}{' '}
+          {selecionadasVisiveis.length === 1 ? 'escala' : 'escalas'}. Não dá para desfazer.
+        </p>
+        {futurasSelecionadas > 0 && (
+          <p className="mt-2">
+            {futurasSelecionadas === 1
+              ? 'O plantão futuro tem gente escalada, que'
+              : `Os ${futurasSelecionadas} plantões futuros têm gente escalada, que`}{' '}
+            vai receber um WhatsApp avisando do cancelamento (uma mensagem por pessoa).
+          </p>
+        )}
+        {excluirLote.error && (
+          <p className="mt-2 text-red-600">{(excluirLote.error as Error).message}</p>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!excluindo}

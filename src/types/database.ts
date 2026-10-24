@@ -568,6 +568,7 @@ export type Database = {
         };
         Returns: number;
       };
+      excluir_escalas_lote: { Args: { _ids: string[] }; Returns: number };
       membros_por_area: {
         Args: { _area: Area };
         Returns: { id: string; nome: string }[];

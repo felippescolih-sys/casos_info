@@ -103,6 +103,13 @@ export async function criarEscalasLote(escalas: EscalaLote[]): Promise<number> {
   return data ?? 0;
 }
 
+/** Exclui todas de uma vez (ou nenhuma). Devolve quantas foram excluídas. */
+export async function excluirEscalasLote(ids: string[]): Promise<number> {
+  const { data, error } = await supabase.rpc('excluir_escalas_lote', { _ids: ids });
+  if (error) throw error;
+  return data ?? 0;
+}
+
 export async function excluirEscala(id: string): Promise<void> {
   const { error } = await supabase.from('escalas').delete().eq('id', id);
   if (error) throw error;
