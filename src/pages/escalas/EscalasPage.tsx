@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,11 +31,39 @@ export function EscalasPage() {
   const [excluindo, setExcluindo] = useState<EscalaComNomes | null>(null);
   const [lote, setLote] = useState(false);
   const [criadasLote, setCriadasLote] = useState<number | null>(null);
+  const [filtroMembro, setFiltroMembro] = useState('');
+  const [filtroDe, setFiltroDe] = useState('');
+  const [filtroAte, setFiltroAte] = useState('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['escalas'],
     queryFn: listEscalas,
   });
+
+  // Opções do filtro vêm da própria escala, não da lista de membros ativos: assim
+  // dá para achar plantões antigos de quem já saiu da COLIH.
+  const membrosNaEscala = useMemo(() => {
+    const porId = new Map<string, string>();
+    for (const e of data ?? []) {
+      porId.set(e.membro_id, e.membro_nome);
+      if (e.ajudante_id && e.ajudante_nome) porId.set(e.ajudante_id, e.ajudante_nome);
+    }
+    return [...porId.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [data]);
+
+  // O período filtra por sobreposição: um plantão de sáb→dom aparece filtrando
+  // só o domingo. Datas do input são locais; 00:00 do "de" até 23:59:59 do "até".
+  const filtradas = useMemo(() => {
+    const de = filtroDe ? new Date(`${filtroDe}T00:00`).getTime() : -Infinity;
+    const ate = filtroAte ? new Date(`${filtroAte}T23:59:59.999`).getTime() : Infinity;
+    return (data ?? []).filter(
+      (e) =>
+        (!filtroMembro || e.membro_id === filtroMembro || e.ajudante_id === filtroMembro) &&
+        new Date(e.inicio).getTime() <= ate &&
+        new Date(e.fim).getTime() >= de,
+    );
+  }, [data, filtroMembro, filtroDe, filtroAte]);
+  const filtrando = !!(filtroMembro || filtroDe || filtroAte);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['escalas'] });
   // Destaca o plantão em andamento. Recalcula a cada render (refetch, foco na aba),
@@ -75,6 +103,55 @@ export function EscalasPage() {
         </Alert>
       )}
 
+      {!!data?.length && (
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-full sm:w-64">
+            <Field label="Membro" htmlFor="filtro_membro">
+              <Select
+                id="filtro_membro"
+                value={filtroMembro}
+                onChange={(e) => setFiltroMembro(e.target.value)}
+              >
+                <option value="">Todos</option>
+                {membrosNaEscala.map(([id, nome]) => (
+                  <option key={id} value={id}>
+                    {nome}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label="De" htmlFor="filtro_de">
+            <Input
+              id="filtro_de"
+              type="date"
+              value={filtroDe}
+              onChange={(e) => setFiltroDe(e.target.value)}
+            />
+          </Field>
+          <Field label="Até" htmlFor="filtro_ate">
+            <Input
+              id="filtro_ate"
+              type="date"
+              value={filtroAte}
+              onChange={(e) => setFiltroAte(e.target.value)}
+            />
+          </Field>
+          {filtrando && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setFiltroMembro('');
+                setFiltroDe('');
+                setFiltroAte('');
+              }}
+            >
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+      )}
+
       <Card className="overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center p-8 text-gray-400">
@@ -82,6 +159,10 @@ export function EscalasPage() {
           </div>
         ) : !data?.length ? (
           <p className="p-8 text-center text-sm text-gray-500">Nenhuma escala cadastrada.</p>
+        ) : !filtradas.length ? (
+          <p className="p-8 text-center text-sm text-gray-500">
+            Nenhuma escala com esses filtros.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -96,7 +177,7 @@ export function EscalasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.map((e) => {
+                {filtradas.map((e) => {
                   const atual =
                     new Date(e.inicio).getTime() <= agora && agora <= new Date(e.fim).getTime();
                   const diaInicio = formatWeekday(e.inicio);
