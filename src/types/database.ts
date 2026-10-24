@@ -560,7 +560,7 @@ export type Database = {
       };
       disponibilidade_plantao_lote: {
         Args: { _membros: string[]; _inicios: string[]; _fins: string[] };
-        Returns: { membro_id: string; turno: number; disponivel: boolean }[];
+        Returns: { membro_id: string; disponivel: boolean[] }[];
       };
       criar_escalas_lote: {
         Args: {

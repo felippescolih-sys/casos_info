@@ -80,8 +80,16 @@ export async function disponibilidadeLote(
     _fins: turnos.map((t) => t.fim),
   });
   if (error) throw error;
-  // `turno` vem 1-based do Postgres (generate_subscripts).
-  return new Map((data ?? []).map((r) => [chaveDisp(r.membro_id, r.turno - 1), r.disponivel]));
+  const disp = new Map<string, boolean>();
+  for (const r of data ?? []) {
+    r.disponivel.forEach((ok, i) => disp.set(chaveDisp(r.membro_id, i), ok));
+  }
+  // Resposta incompleta não pode virar "indisponível" em silêncio: foi assim que
+  // um corte de linhas do PostgREST tirou gente do rodízio sem ninguém perceber.
+  if (disp.size !== membros.length * turnos.length) {
+    throw new Error('Não foi possível consultar a disponibilidade de todos. Tente de novo.');
+  }
+  return disp;
 }
 
 export function chaveDisp(membroId: string, turno: number): string {
