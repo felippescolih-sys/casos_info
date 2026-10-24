@@ -9,6 +9,8 @@
 //   - "transferencia": avisa o novo responsável e o ancião de contato do caso.
 //   - "checar_escalas": varredura (chamada a cada 15min pelo pg_cron) que manda
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
+//   - "escala_alterada": um plantão criado, editado ou excluído no app.
+//   - "escala_lote": vários plantões criados de uma vez; um aviso agrupado por membro.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { enviarTexto } from '../_shared/whatsapp.ts';
@@ -196,6 +198,53 @@ async function notificarEscalaAlterada(
   }
 }
 
+// Escala gerada em lote (`criar_escalas_lote`): uma mensagem por membro listando
+// todos os turnos dele, em vez de uma por turno. A RPC só manda turnos que ainda
+// não acabaram, já em ordem de início.
+async function notificarEscalaLote(escalas: EscalaSnapshot[], autorId: string | null) {
+  const ids = new Set<string>();
+  for (const e of escalas) {
+    ids.add(e.membro_id);
+    if (e.ajudante_id) ids.add(e.ajudante_id);
+  }
+  if (!ids.size) return;
+  if (autorId) ids.add(autorId);
+
+  const { data: membros, error } = await supabase
+    .from('membros')
+    .select('id, nome, tel_zap')
+    .in('id', [...ids]);
+  if (error) {
+    console.error('notificarEscalaLote: erro ao buscar membros', error);
+    return;
+  }
+  const porId = new Map((membros ?? []).map((m) => [m.id, m]));
+  const autor = autorId ? porId.get(autorId) : undefined;
+
+  for (const m of porId.values()) {
+    const linhas: string[] = [];
+    for (const e of escalas) {
+      const periodo = `${fmtDataHora(e.inicio)} a ${fmtDataHora(e.fim)}`;
+      if (e.membro_id === m.id) {
+        const dupla = e.ajudante_id ? porId.get(e.ajudante_id)?.nome : null;
+        linhas.push(`• ${periodo} — responsável${dupla ? ` (ajudante: ${dupla})` : ''}`);
+      } else if (e.ajudante_id === m.id) {
+        const resp = porId.get(e.membro_id)?.nome ?? 'outro membro';
+        linhas.push(`• ${periodo} — ajudante (responsável: ${resp})`);
+      }
+    }
+    if (!linhas.length) continue;
+
+    let msg =
+      linhas.length === 1
+        ? `Olá, ${m.nome}! Você foi designado(a) para o plantão de emergência:\n`
+        : `Olá, ${m.nome}! Você foi designado(a) para ${linhas.length} plantões de emergência:\n`;
+    msg += linhas.join('\n');
+    if (autor && autor.id !== m.id) msg += `\n\nEscala feita por ${autor.nome}.`;
+    await enviarWhatsapp(m.tel_zap, msg);
+  }
+}
+
 async function checarEscalas() {
   const agora = new Date();
   const iso = (ms: number) => new Date(agora.getTime() + ms).toISOString();
@@ -271,6 +320,7 @@ Deno.serve(async (req) => {
     antes?: EscalaSnapshot | null;
     depois?: EscalaSnapshot | null;
     autorId?: string | null;
+    escalas?: EscalaSnapshot[];
   };
   try {
     body = await req.json();
@@ -290,6 +340,8 @@ Deno.serve(async (req) => {
         body.depois ?? null,
         body.autorId ?? null,
       );
+    } else if (body.evento === 'escala_lote' && Array.isArray(body.escalas)) {
+      await notificarEscalaLote(body.escalas, body.autorId ?? null);
     } else {
       return new Response('evento desconhecido', { status: 400 });
     }

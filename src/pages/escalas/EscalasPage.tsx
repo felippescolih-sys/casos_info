@@ -20,6 +20,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAuth } from '@/auth/AuthProvider';
+import { GerarEscalaLoteDialog } from './GerarEscalaLoteDialog';
 
 export function EscalasPage() {
   const qc = useQueryClient();
@@ -28,6 +29,8 @@ export function EscalasPage() {
   const { gerenciaEscalas } = useAuth();
   const [form, setForm] = useState<'novo' | EscalaComNomes | null>(null);
   const [excluindo, setExcluindo] = useState<EscalaComNomes | null>(null);
+  const [lote, setLote] = useState(false);
+  const [criadasLote, setCriadasLote] = useState<number | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['escalas'],
@@ -51,10 +54,23 @@ export function EscalasPage() {
           <h1 className="text-xl font-semibold text-gray-900">Escalas de plantão</h1>
           <p className="text-sm text-gray-500">Quem está designado em cada período.</p>
         </div>
-        {gerenciaEscalas && <Button onClick={() => setForm('novo')}>+ Nova escala</Button>}
+        {gerenciaEscalas && (
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setLote(true)} disabled={isLoading}>
+              Gerar em lote
+            </Button>
+            <Button onClick={() => setForm('novo')}>+ Nova escala</Button>
+          </div>
+        )}
       </div>
 
       {error && <Alert tone="error">{(error as Error).message}</Alert>}
+      {criadasLote !== null && (
+        <Alert tone="success">
+          {criadasLote} {criadasLote === 1 ? 'escala criada' : 'escalas criadas'}. Os escalados
+          foram avisados no WhatsApp.
+        </Alert>
+      )}
 
       <Card className="overflow-hidden">
         {isLoading ? (
@@ -116,6 +132,18 @@ export function EscalasPage() {
           onClose={() => setForm(null)}
           onSaved={() => {
             setForm(null);
+            invalidate();
+          }}
+        />
+      )}
+
+      {lote && (
+        <GerarEscalaLoteDialog
+          existentes={data ?? []}
+          onClose={() => setLote(false)}
+          onSaved={(n) => {
+            setLote(false);
+            setCriadasLote(n);
             invalidate();
           }}
         />

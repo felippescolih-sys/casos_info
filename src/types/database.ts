@@ -558,6 +558,16 @@ export type Database = {
         Args: { _membro_id: string; _inicio: string; _fim: string };
         Returns: boolean;
       };
+      disponibilidade_plantao_lote: {
+        Args: { _membros: string[]; _inicios: string[]; _fins: string[] };
+        Returns: { membro_id: string; turno: number; disponivel: boolean }[];
+      };
+      criar_escalas_lote: {
+        Args: {
+          _escalas: { membro_id: string; ajudante_id: string | null; inicio: string; fim: string }[];
+        };
+        Returns: number;
+      };
       membros_por_area: {
         Args: { _area: Area };
         Returns: { id: string; nome: string }[];
