@@ -11,7 +11,7 @@ import {
   type EscalaComNomes,
 } from '@/lib/queries/escalas';
 import { listMembrosColihAtivos, membroDisponivelPlantao } from '@/lib/queries/membros';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatWeekday } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
@@ -38,6 +38,9 @@ export function EscalasPage() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['escalas'] });
+  // Destaca o plantão em andamento. Recalcula a cada render (refetch, foco na aba),
+  // o que basta para uma virada de dia sem precisar de timer.
+  const agora = Date.now();
 
   const excluir = useMutation({
     mutationFn: (id: string) => excluirEscala(id),
@@ -84,6 +87,7 @@ export function EscalasPage() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <tr>
+                  <th className="px-4 py-3">Dia</th>
                   <th className="px-4 py-3">Início</th>
                   <th className="px-4 py-3">Fim</th>
                   <th className="px-4 py-3">Responsável</th>
@@ -92,34 +96,53 @@ export function EscalasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.map((e) => (
-                  <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">{formatDateTime(e.inicio)}</td>
-                    <td className="px-4 py-3">{formatDateTime(e.fim)}</td>
-                    <td className="px-4 py-3">{e.membro_nome}</td>
-                    <td className="px-4 py-3">{e.ajudante_nome ?? '—'}</td>
-                    {gerenciaEscalas && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-3">
-                          <button
-                            type="button"
-                            className="font-medium text-brand-700 hover:underline"
-                            onClick={() => setForm(e)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="font-medium text-red-600 hover:underline"
-                            onClick={() => setExcluindo(e)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
+                {data.map((e) => {
+                  const atual =
+                    new Date(e.inicio).getTime() <= agora && agora <= new Date(e.fim).getTime();
+                  const diaInicio = formatWeekday(e.inicio);
+                  const diaFim = formatWeekday(e.fim);
+                  return (
+                    <tr
+                      key={e.id}
+                      className={atual ? 'bg-brand-50 font-medium text-brand-900' : 'hover:bg-gray-50'}
+                    >
+                      <td className="px-4 py-3 capitalize">
+                        {diaInicio === diaFim ? diaInicio : `${diaInicio} → ${diaFim}`}
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td className="px-4 py-3">{formatDateTime(e.inicio)}</td>
+                      <td className="px-4 py-3">{formatDateTime(e.fim)}</td>
+                      <td className="px-4 py-3">
+                        {e.membro_nome}
+                        {atual && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-brand-700 px-2 py-0.5 text-xs font-medium text-white">
+                            De plantão agora
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">{e.ajudante_nome ?? '—'}</td>
+                      {gerenciaEscalas && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              type="button"
+                              className="font-medium text-brand-700 hover:underline"
+                              onClick={() => setForm(e)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className="font-medium text-red-600 hover:underline"
+                              onClick={() => setExcluindo(e)}
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

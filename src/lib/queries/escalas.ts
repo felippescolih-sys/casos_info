@@ -36,12 +36,12 @@ export async function getEscalaAtual(): Promise<EscalaComNomes | null> {
   return data ? comNomes(data as unknown as EscalaRowComMembros) : null;
 }
 
-/** Lista as escalas da mais antiga para a mais recente (passadas e futuras). */
+/** Lista as escalas da mais recente para a mais antiga (futuras e passadas). */
 export async function listEscalas(): Promise<EscalaComNomes[]> {
   const { data, error } = await supabase
     .from('escalas')
     .select(SELECT_COM_NOMES)
-    .order('inicio', { ascending: true });
+    .order('inicio', { ascending: false });
   if (error) throw error;
   return ((data ?? []) as unknown as EscalaRowComMembros[]).map(comNomes);
 }

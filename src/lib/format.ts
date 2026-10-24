@@ -21,6 +21,15 @@ export function formatDateTime(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '—' : dateTimeFmt.format(d);
 }
 
+const weekdayFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+
+/** Dia da semana abreviado ("seg."). */
+export function formatWeekday(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : weekdayFmt.format(d);
+}
+
 export function boolLabel(v: boolean | null | undefined): string | null {
   return v === true ? 'Sim' : v === false ? 'Não' : null;
 }
