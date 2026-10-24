@@ -13,6 +13,7 @@ interface NavItem {
   gestor?: boolean;
   adminGeral?: boolean;
   colih?: boolean;
+  escalas?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -20,6 +21,7 @@ const NAV: NavItem[] = [
   { to: '/casos', label: 'Casos' },
   { to: '/medicos', label: 'Médicos' },
   { to: '/escalas', label: 'Escalas', colih: true },
+  { to: '/ausencias', label: 'Ausências', escalas: true },
   { to: '/chamadas', label: 'Chamadas', colih: true },
   { to: '/membros', label: 'Membros', colih: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },
@@ -28,13 +30,14 @@ const NAV: NavItem[] = [
 ];
 
 export function AppShell() {
-  const { gerenciaMembros, isAdminGeral, ehMembroColih } = useAuth();
+  const { gerenciaMembros, isAdminGeral, ehMembroColih, gerenciaEscalas } = useAuth();
   const [open, setOpen] = useState(false);
   const items = NAV.filter(
     (i) =>
       (!i.gestor || gerenciaMembros) &&
       (!i.adminGeral || isAdminGeral) &&
-      (!i.colih || ehMembroColih),
+      (!i.colih || ehMembroColih) &&
+      (!i.escalas || gerenciaEscalas),
   );
 
   return (

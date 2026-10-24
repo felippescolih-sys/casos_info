@@ -20,6 +20,7 @@ import { CasosListPage } from '@/pages/casos/CasosListPage';
 import { CasoDetailPage } from '@/pages/casos/CasoDetailPage';
 import { CasoFormPage } from '@/pages/casos/CasoFormPage';
 import { EscalasPage } from '@/pages/escalas/EscalasPage';
+import { AusenciasPage } from '@/pages/ausencias/AusenciasPage';
 import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 import { MedicosPage } from '@/pages/medicos/MedicosPage';
 import { ChamadasPage } from '@/pages/chamadas/ChamadasPage';
@@ -30,6 +31,8 @@ const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Em todas elas quem pode editar é filtrado dentro da própria página.
 const canSeeColih = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
 const isSuperadmin = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
+// Ausências de todos: só quem monta a escala (SuperAdmin ou admin da COLIH).
+const canManageEscalas = (p: { gerenciaEscalas: boolean }) => p.gerenciaEscalas;
 
 export default function App() {
   return (
@@ -63,6 +66,14 @@ export default function App() {
           element={
             <RequireAuth canAccess={canSeeColih}>
               <EscalasPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/ausencias"
+          element={
+            <RequireAuth canAccess={canManageEscalas}>
+              <AusenciasPage />
             </RequireAuth>
           }
         />
