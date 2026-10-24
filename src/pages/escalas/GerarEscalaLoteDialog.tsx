@@ -106,6 +106,7 @@ export function GerarEscalaLoteDialog({
         ajudantes: emOrdem(ajudantes),
         disponivel: (id, i) => disp.get(chaveDisp(id, i)) ?? false,
         ocupados: turnos.map((t) => existentes.some((e) => sobrepoe(t, e))),
+        historico: existentes,
       });
       setPrevia({ atribuicoes, disp });
     } catch (e) {
@@ -235,8 +236,8 @@ export function GerarEscalaLoteDialog({
 
               <p className="text-xs text-gray-500">
                 Os plantões são distribuídos por igual entre quem está disponível em cada período
-                (ausências e dias da semana de cada membro). Períodos que já têm escala são pulados.
-                Você revisa e ajusta antes de criar.
+                (ausências e dias da semana de cada membro), começando por quem fez plantão há mais
+                tempo. Períodos que já têm escala são pulados. Você revisa e ajusta antes de criar.
               </p>
 
               <div className="flex justify-end gap-2 pt-2">

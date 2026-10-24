@@ -43,12 +43,21 @@ export function sobrepoe(a: Turno, b: Turno): boolean {
   return new Date(a.inicio) < new Date(b.fim) && new Date(b.inicio) < new Date(a.fim);
 }
 
+/** Escala já gravada; alimenta "quem fez plantão há mais tempo" e a contagem do período. */
+export type EscalaHistorico = Turno & { membro_id: string; ajudante_id: string | null };
+
+type Chave = [number, number, number, number];
+
 /**
  * Distribui os turnos de forma equilibrada. Para cada turno escolhe, entre os
- * disponíveis, quem tem menos turnos naquela função até aqui; no empate, quem tem
- * menos turnos no total (responsável + ajudante); no empate de novo, o próximo na
- * ordem da lista depois do último escolhido — o que dá um rodízio redondo quando
- * ninguém tem restrição. Turno sem ninguém disponível fica com `membro_id` nulo.
+ * disponíveis:
+ *   1. quem tem menos turnos naquela função dentro do período gerado;
+ *   2. no empate, quem tem menos turnos no total (responsável + ajudante) no período;
+ *   3. no empate, quem fez plantão naquela função há mais tempo, olhando o histórico
+ *      inteiro (quem nunca fez vem primeiro) — é isso que decide quem abre o mês;
+ *   4. no empate, o próximo na ordem da lista depois do último escolhido.
+ * Escalas já gravadas dentro do período contam na contagem como se tivessem sido
+ * geradas. Turno sem ninguém disponível fica com `membro_id` nulo.
  */
 export function gerarRodizio({
   turnos,
@@ -56,16 +65,46 @@ export function gerarRodizio({
   ajudantes,
   disponivel,
   ocupados,
+  historico = [],
 }: {
   turnos: Turno[];
   responsaveis: string[];
   ajudantes: string[];
   disponivel: (membroId: string, turno: number) => boolean;
   ocupados: boolean[];
+  historico?: EscalaHistorico[];
 }): Atribuicao[] {
   const total = new Map<string, number>();
   const porFuncao = { resp: new Map<string, number>(), ajud: new Map<string, number>() };
+  const ultimaVez = { resp: new Map<string, number>(), ajud: new Map<string, number>() };
   const ultimo = { resp: -1, ajud: -1 };
+  const inicioPeriodo = turnos.length ? new Date(turnos[0].inicio).getTime() : Infinity;
+
+  function registrar(funcao: 'resp' | 'ajud', id: string, inicio: number, contar: boolean) {
+    ultimaVez[funcao].set(id, Math.max(ultimaVez[funcao].get(id) ?? -Infinity, inicio));
+    if (!contar) return;
+    porFuncao[funcao].set(id, (porFuncao[funcao].get(id) ?? 0) + 1);
+    total.set(id, (total.get(id) ?? 0) + 1);
+  }
+
+  // O histórico entra em ordem cronológica, só até o turno que está sendo decidido:
+  // uma escala gravada no meio do mês não pode influenciar os dias anteriores a ela.
+  const passado = [...historico].sort(
+    (a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime(),
+  );
+  let proximoHistorico = 0;
+  function aplicarHistoricoAte(momento: number) {
+    while (
+      proximoHistorico < passado.length &&
+      new Date(passado[proximoHistorico].inicio).getTime() <= momento
+    ) {
+      const e = passado[proximoHistorico++];
+      const inicio = new Date(e.inicio).getTime();
+      const noPeriodo = inicio >= inicioPeriodo;
+      registrar('resp', e.membro_id, inicio, noPeriodo);
+      if (e.ajudante_id) registrar('ajud', e.ajudante_id, inicio, noPeriodo);
+    }
+  }
 
   function escolher(
     funcao: 'resp' | 'ajud',
@@ -73,14 +112,15 @@ export function gerarRodizio({
     turno: number,
     exceto: string | null,
   ): string | null {
-    let melhor: { id: string; pos: number; chave: [number, number, number] } | null = null;
+    let melhor: { id: string; pos: number; chave: Chave } | null = null;
     for (let pos = 0; pos < lista.length; pos++) {
       const id = lista[pos];
       if (id === exceto || !disponivel(id, turno)) continue;
       const distancia = (pos - ultimo[funcao] - 1 + lista.length) % lista.length;
-      const chave: [number, number, number] = [
+      const chave: Chave = [
         porFuncao[funcao].get(id) ?? 0,
         total.get(id) ?? 0,
+        ultimaVez[funcao].get(id) ?? -Infinity,
         distancia,
       ];
       if (!melhor || menor(chave, melhor.chave)) melhor = { id, pos, chave };
@@ -88,12 +128,12 @@ export function gerarRodizio({
     if (!melhor) return null;
     const { id, pos } = melhor;
     ultimo[funcao] = pos;
-    porFuncao[funcao].set(id, (porFuncao[funcao].get(id) ?? 0) + 1);
-    total.set(id, (total.get(id) ?? 0) + 1);
+    registrar(funcao, id, new Date(turnos[turno].inicio).getTime(), true);
     return id;
   }
 
   return turnos.map((turno, i) => {
+    aplicarHistoricoAte(new Date(turno.inicio).getTime());
     if (ocupados[i]) return { turno, membro_id: null, ajudante_id: null, ocupado: true };
     const membro_id = escolher('resp', responsaveis, i, null);
     const ajudante_id = membro_id && ajudantes.length ? escolher('ajud', ajudantes, i, membro_id) : null;
@@ -101,7 +141,7 @@ export function gerarRodizio({
   });
 }
 
-function menor(a: [number, number, number], b: [number, number, number]): boolean {
+function menor(a: Chave, b: Chave): boolean {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i];
   return false;
 }
