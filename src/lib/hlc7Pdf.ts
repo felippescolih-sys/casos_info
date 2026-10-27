@@ -168,9 +168,12 @@ export async function preencherHlc7(modelo: ArrayBuffer, c: CasoRow): Promise<Ui
   marca('Os anciãos locais foram contatados para dar acompanhamento_2', c.anciaos_acompanhamento);
   texto('Os anciãos locais foram contatados para dar acompanhamento', c.resumo);
 
-  // Achata o formulário: o PDF sai igual em qualquer leitor (WhatsApp, celular, impressão).
+  // Grava a aparência de cada campo (é o que WhatsApp, celular e impressão mostram), mas não
+  // achata o formulário: o conteúdo das páginas do modelo deixa `q` sem o `Q` correspondente,
+  // e o form.flatten() desenha os campos dentro desse estado, o que o Acrobat recusa
+  // ("Houve um problema ao ler este documento (18)"). Sem achatar, as páginas ficam idênticas
+  // às do modelo, e os campos continuam editáveis no Acrobat.
   form.updateFieldAppearances(fonte);
-  form.flatten();
   return pdf.save();
 }
 
