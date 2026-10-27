@@ -534,6 +534,13 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
   const [dialog, setDialog] = useState<'transferir' | 'encerrar' | 'reabrir' | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
+  const pdf = useMutation({
+    // Importado só no clique: o pdf-lib não entra no carregamento da página.
+    mutationFn: async () => (await import('@/lib/hlc7Pdf')).baixarHlc7Pdf(c),
+    onSuccess: () => setErro(null),
+    onError: (e) => setErro(`Não foi possível gerar o PDF do HLC-7: ${(e as Error).message}`),
+  });
+
   const encerrar = useMutation({
     mutationFn: () => encerrarCaso(c.id),
     onSuccess: () => {
@@ -551,8 +558,7 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
     onError: (e) => setErro((e as Error).message),
   });
 
-  if (!podeOperar && !(c.status === 'encerrado' && isAdminGeral)) return null;
-
+  // O PDF é para todos que veem o prontuário completo; as outras ações, só para quem opera o caso.
   return (
     <div className="flex flex-wrap items-center gap-2">
       {erro && (
@@ -583,6 +589,10 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
           </Button>
         </>
       )}
+
+      <Button variant="secondary" size="sm" loading={pdf.isPending} onClick={() => pdf.mutate()}>
+        Baixar HLC-7 (PDF)
+      </Button>
 
       {c.status === 'encerrado' && isAdminGeral && (
         <Button variant="secondary" size="sm" onClick={() => setDialog('reabrir')}>
