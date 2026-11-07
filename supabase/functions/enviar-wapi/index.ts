@@ -16,6 +16,9 @@
 //   - "escala_alterada": um plantão criado, editado ou excluído no app.
 //   - "escala_lote": vários plantões criados de uma vez; um aviso agrupado por membro.
 //   - "escala_lote_cancelada": vários plantões excluídos de uma vez; idem.
+//   - "plantao_sem_registro": pg_cron às 12h. Ligações de ontem com mais de 1 min que não viraram
+//     caso (regra em plantao_ligacoes_sem_registro): avisa o plantonista e manda um resumo para a
+//     coordenação (COPIA_SEM_REGISTRO).
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { enviarTexto } from '../_shared/whatsapp.ts';
@@ -448,6 +451,111 @@ async function checarEscalas() {
   }
 }
 
+// Recebem o resumo dos avisos de ligação sem caso (pedido da coordenação em 07/11/2026):
+// Felippe Soares, Sérgio Vieira da Rosa e Eduardo Crusdack.
+const COPIA_SEM_REGISTRO = [
+  '69d48252-375b-4378-ba95-71aadbb163e3',
+  '334c6478-5be1-4a08-8522-5e18c6dc926f',
+  '131fbb5f-a5e0-4b42-b287-740320a382c1',
+];
+
+// "13:09" / "13:09 e 14:18" / "13:09, 14:18 e 18:33"
+function listarHorarios(h: string[]): string {
+  return h.length <= 1 ? (h[0] ?? '') : `${h.slice(0, -1).join(', ')} e ${h[h.length - 1]}`;
+}
+
+// Dia de ontem em Brasília, no formato yyyy-mm-dd.
+function ontemBrasilia(): string {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const d = new Date(`${hoje}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// Grava no histórico da tela /whatsapp, junto com as mensagens enviadas à mão.
+async function registrarHistorico(m: { id: string; nome: string }, telefone: string, texto: string, ok: boolean) {
+  const { error } = await supabase.from('whatsapp_mensagens_avulsas').insert({
+    remetente_nome: 'Aviso automático do plantão',
+    destino_membro_id: m.id,
+    destino_nome: m.nome,
+    telefone: (telefone ?? '').replace(/\D/g, ''),
+    texto,
+    ok,
+    erro: ok ? null : 'O WhatsApp não aceitou o envio.',
+  });
+  if (error) console.error('plantao_sem_registro: histórico não gravado', error);
+}
+
+async function notificarPlantaoSemRegistro(dia: string) {
+  const { data: linhas, error } = await supabase.rpc('plantao_ligacoes_sem_registro', { _dia: dia });
+  if (error) {
+    console.error('plantao_sem_registro: erro na consulta', error);
+    return;
+  }
+  if (!linhas?.length) return;
+
+  const [, mes, d] = dia.split('-');
+  const diaBr = `${d}/${mes}`;
+  const ids = [...new Set([...linhas.map((l: { plantonista_id: string }) => l.plantonista_id), ...COPIA_SEM_REGISTRO])];
+  const { data: membros } = await supabase.from('membros').select('id, nome, tel_zap').in('id', ids);
+  const porId = new Map((membros ?? []).map((m) => [m.id, m]));
+
+  const resumo: string[] = [];
+  for (const l of linhas as { plantonista_id: string; plantonista_nome: string; horarios: string[] }[]) {
+    // Reivindica antes de enviar: o cron rodando duas vezes não repete a mensagem.
+    const { data: meu, error: errClaim } = await supabase
+      .from('plantao_avisos_registro')
+      .upsert({ dia, plantonista_id: l.plantonista_id, horarios: l.horarios }, {
+        onConflict: 'dia,plantonista_id',
+        ignoreDuplicates: true,
+      })
+      .select('dia');
+    if (errClaim) {
+      console.error('plantao_sem_registro: reivindicar falhou', errClaim);
+      continue;
+    }
+    if (!meu?.length) continue;
+
+    const m = porId.get(l.plantonista_id);
+    const nome = (m?.nome ?? l.plantonista_nome ?? '').trim();
+    const primeiro = nome.split(/\s+/)[0] || nome;
+    const umaSo = l.horarios.length === 1;
+    const texto =
+      `Olá ${primeiro}! Tudo bem?\n` +
+      `Não encontramos ${umaSo ? 'o caso da ligação' : 'os casos das ligações'} do seu plantão de ` +
+      `${diaBr} (às ${listarHorarios(l.horarios)}) aqui no sistema. Caso tenha alguma dificuldade, ` +
+      `por favor, fale com o Sérgio ou o Felippe.\n` +
+      `Lembrando que o caso também pode ser aberto pelo próprio WhatsApp: basta mandar uma ` +
+      `mensagem ou responder a esta.\n` +
+      `Obrigado!`;
+
+    let situacao: string;
+    if (!m?.tel_zap) {
+      situacao = 'não avisado: sem WhatsApp no cadastro';
+    } else {
+      const ok = await enviarTexto({ telefone: m.tel_zap }, texto).catch((e) => {
+        console.error('plantao_sem_registro: envio falhou', e);
+        return false;
+      });
+      await registrarHistorico({ id: l.plantonista_id, nome }, m.tel_zap, texto, ok);
+      situacao = ok ? 'avisado' : 'não avisado: o WhatsApp recusou o envio';
+    }
+    resumo.push(`• ${nome}: ${l.horarios.length} ${umaSo ? 'ligação' : 'ligações'} (${listarHorarios(l.horarios)}), ${situacao}`);
+  }
+
+  if (!resumo.length) return;
+  const textoCopia =
+    `📋 Ligações sem caso no plantão de ${diaBr}\n` +
+    `${resumo.join('\n')}\n\n` +
+    `Ligações com mais de 1 min de conversa que não aparecem em nenhum caso.`;
+  for (const id of COPIA_SEM_REGISTRO) {
+    const c = porId.get(id);
+    if (!c?.tel_zap) continue;
+    const ok = await enviarTexto({ telefone: c.tel_zap }, textoCopia).catch(() => false);
+    await registrarHistorico({ id, nome: c.nome }, c.tel_zap, textoCopia, ok);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.headers.get('x-webhook-secret') !== WEBHOOK_SECRET) {
     return new Response('unauthorized', { status: 401 });
@@ -463,6 +571,7 @@ Deno.serve(async (req) => {
     membroId?: string;
     grupo?: number | null;
     escalas?: EscalaSnapshot[];
+    dia?: string;
   };
   try {
     body = await req.json();
@@ -490,6 +599,9 @@ Deno.serve(async (req) => {
       await notificarEscalaLote(body.escalas, body.autorId ?? null, 'criada');
     } else if (body.evento === 'escala_lote_cancelada' && Array.isArray(body.escalas)) {
       await notificarEscalaLote(body.escalas, body.autorId ?? null, 'cancelada');
+    } else if (body.evento === 'plantao_sem_registro') {
+      const dia = body.dia && /^\d{4}-\d{2}-\d{2}$/.test(body.dia) ? body.dia : ontemBrasilia();
+      await notificarPlantaoSemRegistro(dia);
     } else {
       return new Response('evento desconhecido', { status: 400 });
     }
