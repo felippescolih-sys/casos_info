@@ -16,8 +16,9 @@ import { WAHA_API_KEY, WAHA_SESSAO, WAHA_URL } from '../_shared/whatsapp.ts';
 const SEGREDO = Deno.env.get('WAHA_WEBHOOK_SECRET') ?? '';
 const N8N_AGENTE_URL = Deno.env.get('N8N_AGENTE_URL') ?? '';
 
+// Payload do WAHA sem tipo e com formato que muda conforme o motor (GOWS/WEBJS); lido com `?.`.
 // deno-lint-ignore no-explicit-any
-type Json = any;
+type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
