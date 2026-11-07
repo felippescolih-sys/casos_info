@@ -120,34 +120,56 @@ Escolha feita por ${autor.nome}.`;
 
 // Chamado pelo gatilho `casos_aviso_gvp`, que já conferiu hospital, grupo e cidade.
 async function notificarGvpNovoCaso(casoId: string, membroId: string, grupo: number | null) {
-  const [{ data: caso, error }, { data: membro }] = await Promise.all([
-    supabase
-      .from('casos')
-      .select('id_caso, numero, paciente_nome, cidade, uf, hospital_nome, num_quarto, responsavel_nome')
-      .eq('id', casoId)
-      .maybeSingle(),
-    supabase.from('membros').select('nome, tel_zap').eq('id', membroId).maybeSingle(),
-  ]);
-  if (error || !caso || !membro) {
+  const { data: caso, error } = await supabase
+    .from('casos')
+    .select(
+      'paciente_nome, cidade, uf, hospital_nome, num_quarto, telefone_paciente, acompanhante_nome, telefone_acompanhante, responsavel_id, responsavel_nome, ajudante_id, ajudante_nome',
+    )
+    .eq('id', casoId)
+    .maybeSingle();
+  if (error || !caso) {
     if (error) console.error('notificarGvpNovoCaso: erro ao buscar caso', error);
     return;
   }
 
-  const identificador = caso.id_caso ? `Caso ${caso.id_caso}` : `Caso nº ${caso.numero}`;
+  const ids = [membroId, caso.responsavel_id, caso.ajudante_id].filter((id): id is string => !!id);
+  const { data: membros } = await supabase.from('membros').select('id, nome, tel_zap').in('id', ids);
+  const porId = new Map((membros ?? []).map((m) => [m.id, m]));
+  const membro = porId.get(membroId);
+  if (!membro) return;
+
+  // "Nome – (41) 99999-9999", ou só o que houver.
+  const pessoa = (nome: string | null | undefined, tel: string | null | undefined) =>
+    [nome?.trim(), formatarTelefone(tel)].filter(Boolean).join(' – ') || null;
+  const responsavel = caso.responsavel_id ? porId.get(caso.responsavel_id) : undefined;
+  const ajudante = caso.ajudante_id ? porId.get(caso.ajudante_id) : undefined;
+
   const origem = [caso.cidade?.trim(), caso.uf?.trim()].filter(Boolean).join('/');
+  const respTexto = pessoa(responsavel?.nome ?? caso.responsavel_nome, responsavel?.tel_zap);
+  const ajudTexto = pessoa(ajudante?.nome ?? caso.ajudante_nome, ajudante?.tel_zap);
+  const telPaciente = formatarTelefone(caso.telefone_paciente);
+  const acompTexto = pessoa(caso.acompanhante_nome, caso.telefone_acompanhante);
   const linhas = [
     `Olá, ${membro.nome}! Novo caso no ${caso.hospital_nome}` +
       (grupo ? `, hospital do grupo ${grupo} do GVP.` : '.'),
     '',
-    `• ${identificador}`,
     caso.paciente_nome ? `• Paciente: ${caso.paciente_nome}` + (origem ? `, de ${origem}` : '') : null,
     !caso.paciente_nome && origem ? `• Paciente de ${origem}` : null,
+    telPaciente ? `• Telefone do paciente: ${telPaciente}` : null,
+    acompTexto ? `• Acompanhante: ${acompTexto}` : null,
     caso.num_quarto ? `• Quarto: ${caso.num_quarto}` : null,
-    caso.responsavel_nome ? `• Responsável pelo caso: ${caso.responsavel_nome}` : null,
-    '',
-    'Acesse o Casos Info para ver os detalhes.',
+    respTexto ? `• Responsável da COLIH pelo caso: ${respTexto}` : null,
+    ajudTexto ? `• Ajudante: ${ajudTexto}` : null,
   ];
   await enviarWhatsapp(membro.tel_zap, linhas.filter((l) => l !== null).join('\n'));
+}
+
+// (41) 99999-9999; o que não for número brasileiro com DDD sai como foi digitado.
+function formatarTelefone(raw: string | null | undefined): string {
+  const d = (raw ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return (raw ?? '').trim();
 }
 
 // Carimba a escala ANTES de enviar. O update condicional (`is null`) é atômico no
