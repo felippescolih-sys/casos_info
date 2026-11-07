@@ -36,3 +36,9 @@ export const qrWhatsapp = () => chamar<{ imagem: string | null }>('qr');
 export const codigoWhatsapp = (telefone: string) =>
   chamar<{ codigo: string }>('codigo', { telefone });
 export const desconectarWhatsapp = () => chamar<SessaoAoVivo>('desconectar');
+
+/** Mensagem avulsa pelo número da COLIH: para um membro (WhatsApp do cadastro) ou um número. */
+export const enviarMensagemWhatsapp = (
+  destino: { membro_id: string } | { telefone: string },
+  texto: string,
+) => chamar<{ ok: true; para: string }>('enviar', { ...destino, texto });

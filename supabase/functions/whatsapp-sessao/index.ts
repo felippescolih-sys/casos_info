@@ -6,7 +6,8 @@
 //     enviar-wapi usa): ação "verificar" — grava o status em `whatsapp_sessao` e avisa os
 //     superadmins quando a sessão cai e quando volta.
 //   - a tela /whatsapp, com o login do usuário: só superadmin (is_admin_geral). Ações
-//     "status", "iniciar", "qr", "codigo" e "desconectar". A API key do WAHA fica aqui;
+//     "status", "iniciar", "qr", "codigo", "desconectar" e "enviar" (mensagem avulsa pelo
+//     número da COLIH, para um membro ou um número digitado). A API key do WAHA fica aqui;
 //     o navegador só vê status, QR e código de pareamento.
 //
 // verify_jwt=false no config.toml porque o cron não manda JWT; a sessão do usuário é
@@ -17,6 +18,7 @@
 // vermelha no app.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { enviarTexto } from '../_shared/whatsapp.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')!;
@@ -307,6 +309,54 @@ async function verificar() {
   if (!enviados) console.error('queda do WhatsApp: nenhum superadmin recebeu o aviso');
 }
 
+// ─── Mensagem avulsa (tela) ──────────────────────────────────────────────
+
+const LIMITE_TEXTO = 4000;
+
+async function enviarAvulsa(
+  remetenteId: string,
+  body: { membro_id?: string; telefone?: string; texto?: string },
+): Promise<{ ok: true; para: string }> {
+  const texto = (body.texto ?? '').trim();
+  if (!texto) throw new ErroUsuario('Escreva a mensagem.');
+  if (texto.length > LIMITE_TEXTO) {
+    throw new ErroUsuario(`Mensagem longa demais: no máximo ${LIMITE_TEXTO} caracteres.`);
+  }
+
+  let telefone: string | null;
+  let para: string;
+  if (body.membro_id) {
+    const { data: m } = await admin
+      .from('membros')
+      .select('nome, tel_zap')
+      .eq('id', body.membro_id)
+      .maybeSingle();
+    if (!m) throw new ErroUsuario('Membro não encontrado.');
+    telefone = normalizarTelefone(m.tel_zap);
+    if (!telefone) {
+      throw new ErroUsuario(`${m.nome} não tem WhatsApp com DDD no cadastro. Corrija o cadastro ou digite o número.`);
+    }
+    para = m.nome;
+  } else {
+    telefone = normalizarTelefone(body.telefone);
+    if (!telefone) throw new ErroUsuario('Número inválido. Digite DDD + número.');
+    para = telefone;
+  }
+
+  const estado = await lerEstado();
+  if (estado.status !== 'WORKING') {
+    throw new ErroUsuario('O WhatsApp da COLIH não está conectado. Conecte o celular antes de enviar.');
+  }
+
+  const ok = await enviarTexto({ telefone }, texto);
+  // Registro de quem mandou o quê para onde (sem o texto, que pode ter dado de paciente).
+  console.log('whatsapp-sessao: envio avulso', { remetente: remetenteId, destino: `****${telefone.slice(-4)}`, ok });
+  if (!ok) {
+    throw new ErroUsuario('O WhatsApp não aceitou o envio. Confira se o número tem WhatsApp.');
+  }
+  return { ok: true, para };
+}
+
 async function lerLinha() {
   const { data, error } = await admin
     .from('whatsapp_sessao')
@@ -323,7 +373,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ erro: 'método não permitido' }, 405);
 
-  let body: { acao?: string; telefone?: string };
+  let body: { acao?: string; telefone?: string; membro_id?: string; texto?: string };
   try {
     body = await req.json();
   } catch {
@@ -385,6 +435,8 @@ Deno.serve(async (req) => {
           .eq('id', 1);
         await verificar();
         return json(await lerLinha());
+      case 'enviar':
+        return json(await enviarAvulsa(usuario.user.id, body));
       default:
         return json({ erro: 'ação desconhecida' }, 400);
     }

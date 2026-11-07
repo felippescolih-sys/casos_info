@@ -3,15 +3,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   codigoWhatsapp,
   desconectarWhatsapp,
+  enviarMensagemWhatsapp,
   iniciarWhatsapp,
   qrWhatsapp,
   statusWhatsapp,
 } from '@/lib/queries/whatsapp';
+import { listMembrosAtivos } from '@/lib/queries/membros';
 import { formatDateTime } from '@/lib/format';
+import { formatarTelefone } from '@/lib/telefone';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
+import { Combobox } from '@/components/ui/Combobox';
 import { Field } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Spinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -246,6 +250,8 @@ export function WhatsappPage() {
         </CardBody>
       </Card>
 
+      {status === 'WORKING' && <EnviarMensagem />}
+
       <ConfirmDialog
         open={confirmarSaida}
         title="Desconectar o WhatsApp?"
@@ -259,5 +265,85 @@ export function WhatsappPage() {
         de novo por esta tela.
       </ConfirmDialog>
     </div>
+  );
+}
+
+const LIMITE_TEXTO = 4000;
+
+/**
+ * Mensagem avulsa pelo número da COLIH. "Para" aceita o nome de um membro ativo (vai para o
+ * WhatsApp do cadastro) ou um número com DDD.
+ */
+function EnviarMensagem() {
+  const [para, setPara] = useState('');
+  const [texto, setTexto] = useState('');
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
+
+  const membros = useQuery({ queryKey: ['membros', 'ativos'], queryFn: listMembrosAtivos });
+  const nomes = (membros.data ?? []).map((m) => m.nome);
+
+  const enviar = useMutation({
+    mutationFn: (destino: { membro_id: string } | { telefone: string }) =>
+      enviarMensagemWhatsapp(destino, texto.trim()),
+    onSuccess: () => {
+      setPara('');
+      setTexto('');
+    },
+  });
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErroLocal(null);
+    enviar.reset();
+    const alvo = para.trim();
+    const membro = membros.data?.find((m) => m.nome.trim().toLowerCase() === alvo.toLowerCase());
+    if (membro) return enviar.mutate({ membro_id: membro.id });
+    const digitos = alvo.replace(/\D/g, '');
+    if (digitos.length >= 10) return enviar.mutate({ telefone: digitos });
+    setErroLocal('Escolha um membro da lista ou digite o número com DDD.');
+  }
+
+  const sucesso = enviar.data;
+  const destinoEnviado = sucesso && /^\d+$/.test(sucesso.para) ? formatarTelefone(sucesso.para) : sucesso?.para;
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-medium text-gray-900">Enviar mensagem</h2>
+        <p className="mt-0.5 text-sm text-gray-600">Sai pelo número da COLIH, como os avisos do sistema.</p>
+      </CardHeader>
+      <CardBody>
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <Field label="Para" htmlFor="wa-para" hint="Nome de um membro ou número com DDD.">
+            <Combobox
+              id="wa-para"
+              value={para}
+              onChange={(v) => {
+                setPara(v);
+                setErroLocal(null);
+              }}
+              options={nomes}
+              placeholder="Ex.: Maria Silva ou (41) 99999-8888"
+            />
+          </Field>
+          <Field label="Mensagem" htmlFor="wa-texto" hint={`${texto.length}/${LIMITE_TEXTO}`}>
+            <Textarea
+              id="wa-texto"
+              rows={5}
+              maxLength={LIMITE_TEXTO}
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+            />
+          </Field>
+          {(erroLocal || enviar.error) && (
+            <Alert tone="error">{erroLocal ?? (enviar.error as Error).message}</Alert>
+          )}
+          {sucesso && <Alert tone="success">Mensagem enviada para {destinoEnviado}.</Alert>}
+          <Button type="submit" loading={enviar.isPending} disabled={!para.trim() || !texto.trim()}>
+            Enviar
+          </Button>
+        </form>
+      </CardBody>
+    </Card>
   );
 }
