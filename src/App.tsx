@@ -25,6 +25,7 @@ import { HospitaisPage } from '@/pages/hospitais/HospitaisPage';
 import { MedicosPage } from '@/pages/medicos/MedicosPage';
 import { ChamadasPage } from '@/pages/chamadas/ChamadasPage';
 import { WhatsappPage } from '@/pages/whatsapp/WhatsappPage';
+import { GvpPage } from '@/pages/gvp/GvpPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
@@ -33,6 +34,8 @@ const canSeeColih = (p: { ehMembroColih: boolean }) => p.ehMembroColih;
 const isSuperadmin = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
 // Ausências de todos: só quem monta a escala (SuperAdmin ou admin da COLIH).
 const canManageEscalas = (p: { gerenciaEscalas: boolean }) => p.gerenciaEscalas;
+// GVP: quem é da área GVPs ou da COLIH consulta; editar é filtrado dentro da página.
+const canSeeGvp = (p: { veGvp: boolean }) => p.veGvp;
 
 export default function App() {
   return (
@@ -106,6 +109,14 @@ export default function App() {
           element={
             <RequireAuth canAccess={canSeeColih}>
               <HospitaisPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/gvp"
+          element={
+            <RequireAuth canAccess={canSeeGvp}>
+              <GvpPage />
             </RequireAuth>
           }
         />

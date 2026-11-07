@@ -338,6 +338,30 @@ export type HospitalRow = {
 export type HospitalInsert = Partial<HospitalRow> & Pick<HospitalRow, 'nome'>;
 export type HospitalUpdate = Partial<Omit<HospitalRow, 'id' | 'created_at'>>;
 
+export type GvpGrupoRow = {
+  id: string;
+  numero: number;
+  nome: string | null;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GvpPapel = 'responsavel' | 'ajudante';
+
+export type GvpGrupoMembroRow = {
+  membro_id: string;
+  grupo_id: string;
+  papel: GvpPapel;
+  created_at: string;
+};
+
+export type GvpGrupoHospitalRow = {
+  hospital_id: string;
+  grupo_id: string;
+  created_at: string;
+};
+
 export type EspecialidadeMedicaRow = {
   id: string;
   nome: string;
@@ -488,6 +512,24 @@ export type Database = {
         Update: HospitalUpdate;
         Relationships: [];
       };
+      gvp_grupos: {
+        Row: GvpGrupoRow;
+        Insert: Partial<GvpGrupoRow> & Pick<GvpGrupoRow, 'numero'>;
+        Update: Partial<Omit<GvpGrupoRow, 'id' | 'created_at'>>;
+        Relationships: [];
+      };
+      gvp_grupo_membros: {
+        Row: GvpGrupoMembroRow;
+        Insert: Omit<GvpGrupoMembroRow, 'created_at'>;
+        Update: Partial<GvpGrupoMembroRow>;
+        Relationships: [];
+      };
+      gvp_grupo_hospitais: {
+        Row: GvpGrupoHospitalRow;
+        Insert: Omit<GvpGrupoHospitalRow, 'created_at'>;
+        Update: Partial<GvpGrupoHospitalRow>;
+        Relationships: [];
+      };
       especialidades_medicas: {
         Row: EspecialidadeMedicaRow;
         Insert: Partial<EspecialidadeMedicaRow> & Pick<EspecialidadeMedicaRow, 'nome'>;
@@ -542,6 +584,19 @@ export type Database = {
       cancelar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
       encerrar_caso: { Args: { _caso_id: string }; Returns: undefined };
       reabrir_caso: { Args: { _caso_id: string }; Returns: undefined };
+      salvar_gvp_grupo: {
+        Args: {
+          _id: string | null;
+          _numero: number;
+          _nome: string | null;
+          _observacoes: string | null;
+          _responsavel: string | null;
+          _ajudantes: string[];
+          _hospitais: string[];
+        };
+        Returns: string;
+      };
+      gerencia_gvp: { Args: Record<string, never>; Returns: boolean };
       definir_ajudante_caso: {
         Args: { _caso_id: string; _ajudante: string | null };
         Returns: undefined;

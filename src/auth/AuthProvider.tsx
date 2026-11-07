@@ -30,6 +30,10 @@ export interface Permissions {
   /** Cria/edita/exclui plantão: SuperAdmin ou admin da COLIH. Note que `adminDeArea`
    * NÃO serve aqui, porque ele também aceita o nível 'ajudante'. */
   gerenciaEscalas: boolean;
+  /** Vê a página do GVP: tem função na área GVPs, é da COLIH, ou SuperAdmin. */
+  veGvp: boolean;
+  /** Cria/edita os grupos do GVP: SuperAdmin ou admin da área GVPs (o ajudante não). */
+  gerenciaGvp: boolean;
   /** Admin ou ajudante daquela área específica (ex.: coordenador da lista de
    * médicos), ou SuperAdmin — que tem acesso a tudo independente de área. */
   adminDeArea: (area: Area) => boolean;
@@ -138,6 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       gerenciaMembros: temFuncao('geral'),
       ehMembroColih: isAdminGeral || temFuncao('colih'),
       gerenciaEscalas: isAdminGeral || temFuncao('colih', 'admin'),
+      veGvp: isAdminGeral || temFuncao('gvps') || temFuncao('colih'),
+      gerenciaGvp: isAdminGeral || temFuncao('gvps', 'admin'),
       adminDeArea,
     }),
     [
