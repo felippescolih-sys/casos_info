@@ -27,3 +27,6 @@ yarn-error.log*
 pnpm-debug.log*
 logs
 *.log
+
+# handoff de sessão do Claude Code
+.handoff/
