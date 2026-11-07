@@ -42,7 +42,7 @@ async function notificarTransferencia(casoId: string) {
   const { data: caso, error } = await supabase
     .from('casos')
     .select(
-      'id_caso, numero, paciente_nome, transferencia_pendente_para, transferencia_pendente_por, anciaos_contatados, anciaos_cont_tel',
+      'id_caso, numero, paciente_nome, hospital_nome, responsavel_id, responsavel_nome, transferencia_pendente_para, transferencia_pendente_por, anciaos_contatados, anciaos_cont_tel',
     )
     .eq('id', casoId)
     .maybeSingle();
@@ -72,12 +72,18 @@ async function notificarTransferencia(casoId: string) {
     );
   }
 
-  if (caso.anciaos_cont_tel) {
+  // Ainda é o responsável até a transferência ser aceita.
+  const anterior = caso.responsavel_id !== caso.transferencia_pendente_para ? caso.responsavel_nome : null;
+  if (caso.anciaos_cont_tel && destino) {
+    const codigo = caso.id_caso ?? `nº ${caso.numero}`;
+    const novo = [destino.nome, formatarTelefone(destino.tel_zap)].filter(Boolean).join(' – ');
     await enviarWhatsapp(
       caso.anciaos_cont_tel,
-      `Aviso: o ${identificador}${caso.paciente_nome ? ` (${caso.paciente_nome})` : ''} foi ` +
-        `transferido para ${destino?.nome ?? 'outro membro'}, que passa a ser o responsável ` +
-        `pelo acompanhamento.`,
+      `Olá! O caso ` +
+        (caso.paciente_nome ? `de ${caso.paciente_nome} (${codigo})` : codigo) +
+        (caso.hospital_nome ? `, no ${caso.hospital_nome},` : '') +
+        ` agora é acompanhado por ${novo}, da COLIH` +
+        (anterior ? `, no lugar de ${anterior}.` : '.'),
     );
   }
 }
