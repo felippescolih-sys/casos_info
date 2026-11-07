@@ -5,6 +5,7 @@ import {
   desconectarWhatsapp,
   enviarMensagemWhatsapp,
   iniciarWhatsapp,
+  listMensagensAvulsas,
   qrWhatsapp,
   statusWhatsapp,
 } from '@/lib/queries/whatsapp';
@@ -252,6 +253,8 @@ export function WhatsappPage() {
 
       {status === 'WORKING' && <EnviarMensagem />}
 
+      <HistoricoMensagens />
+
       <ConfirmDialog
         open={confirmarSaida}
         title="Desconectar o WhatsApp?"
@@ -275,6 +278,7 @@ const LIMITE_TEXTO = 4000;
  * WhatsApp do cadastro) ou um número com DDD.
  */
 function EnviarMensagem() {
+  const qc = useQueryClient();
   const [para, setPara] = useState('');
   const [texto, setTexto] = useState('');
   const [erroLocal, setErroLocal] = useState<string | null>(null);
@@ -289,6 +293,8 @@ function EnviarMensagem() {
       setPara('');
       setTexto('');
     },
+    // Falhas também entram no histórico.
+    onSettled: () => void qc.invalidateQueries({ queryKey: ['whatsapp', 'avulsas'] }),
   });
 
   function onSubmit(e: React.FormEvent) {
@@ -344,6 +350,63 @@ function EnviarMensagem() {
           </Button>
         </form>
       </CardBody>
+    </Card>
+  );
+}
+
+/** Mensagens avulsas já enviadas por esta tela (as 50 mais recentes). */
+function HistoricoMensagens() {
+  const historico = useQuery({ queryKey: ['whatsapp', 'avulsas'], queryFn: () => listMensagensAvulsas() });
+  const lista = historico.data ?? [];
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between gap-3">
+        <h2 className="font-medium text-gray-900">Mensagens enviadas</h2>
+        {historico.isFetching && <Spinner className="size-4 text-gray-400" />}
+      </CardHeader>
+      <div>
+        {historico.error ? (
+          <div className="p-5 sm:p-6">
+            <Alert tone="error">
+              Não deu para carregar o histórico: {(historico.error as Error).message}
+            </Alert>
+          </div>
+        ) : historico.isLoading ? (
+          <div className="flex items-center gap-2 p-5 text-sm text-gray-600 sm:p-6">
+            <Spinner className="size-4" /> Carregando…
+          </div>
+        ) : lista.length === 0 ? (
+          <p className="p-5 text-sm text-gray-600 sm:p-6">
+            Nenhuma mensagem enviada por aqui ainda. As que você mandar acima aparecem nesta lista.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {lista.map((m) => (
+              <li key={m.id} className="space-y-1.5 px-5 py-4 sm:px-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
+                  <p className="min-w-0 text-gray-900">
+                    <span className="font-medium">{m.destino_nome ?? formatarTelefone(m.telefone)}</span>
+                    {m.destino_nome && (
+                      <span className="text-gray-500"> · {formatarTelefone(m.telefone)}</span>
+                    )}
+                  </p>
+                  <p className="shrink-0 text-xs text-gray-500">{formatDateTime(m.enviado_em)}</p>
+                </div>
+                <p className="whitespace-pre-wrap break-words text-sm text-gray-700">{m.texto}</p>
+                <p className="text-xs text-gray-500">
+                  {m.ok ? (
+                    <span className="font-medium text-green-700">Enviada</span>
+                  ) : (
+                    <span className="font-medium text-red-700">Não enviada{m.erro && `: ${m.erro}`}</span>
+                  )}
+                  {m.remetente_nome && <> · por {m.remetente_nome}</>}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }

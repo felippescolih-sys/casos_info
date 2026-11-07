@@ -1,6 +1,6 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import type { WhatsappSessaoRow } from '@/types/database';
+import type { WhatsappMensagemAvulsaRow, WhatsappSessaoRow } from '@/types/database';
 
 /** Estado gravado pela verificação periódica (a cada 2 min). Só superadmin lê (RLS). */
 export async function getWhatsappSessao(): Promise<WhatsappSessaoRow | null> {
@@ -42,3 +42,14 @@ export const enviarMensagemWhatsapp = (
   destino: { membro_id: string } | { telefone: string },
   texto: string,
 ) => chamar<{ ok: true; para: string }>('enviar', { ...destino, texto });
+
+/** Últimas mensagens avulsas enviadas pela tela, mais recentes primeiro. Só superadmin lê (RLS). */
+export async function listMensagensAvulsas(limite = 50): Promise<WhatsappMensagemAvulsaRow[]> {
+  const { data, error } = await supabase
+    .from('whatsapp_mensagens_avulsas')
+    .select('*')
+    .order('enviado_em', { ascending: false })
+    .limit(limite);
+  if (error) throw error;
+  return data ?? [];
+}

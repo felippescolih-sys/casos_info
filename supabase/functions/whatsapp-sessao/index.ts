@@ -325,6 +325,8 @@ async function enviarAvulsa(
 
   let telefone: string | null;
   let para: string;
+  let destinoMembroId: string | null = null;
+  let destinoNome: string | null = null;
   if (body.membro_id) {
     const { data: m } = await admin
       .from('membros')
@@ -337,6 +339,8 @@ async function enviarAvulsa(
       throw new ErroUsuario(`${m.nome} não tem WhatsApp com DDD no cadastro. Corrija o cadastro ou digite o número.`);
     }
     para = m.nome;
+    destinoMembroId = body.membro_id;
+    destinoNome = m.nome;
   } else {
     telefone = normalizarTelefone(body.telefone);
     if (!telefone) throw new ErroUsuario('Número inválido. Digite DDD + número.');
@@ -348,12 +352,32 @@ async function enviarAvulsa(
     throw new ErroUsuario('O WhatsApp da COLIH não está conectado. Conecte o celular antes de enviar.');
   }
 
-  const ok = await enviarTexto({ telefone }, texto);
-  // Registro de quem mandou o quê para onde (sem o texto, que pode ter dado de paciente).
-  console.log('whatsapp-sessao: envio avulso', { remetente: remetenteId, destino: `****${telefone.slice(-4)}`, ok });
-  if (!ok) {
-    throw new ErroUsuario('O WhatsApp não aceitou o envio. Confira se o número tem WhatsApp.');
+  let ok = false;
+  let erro: string | null = null;
+  try {
+    ok = await enviarTexto({ telefone }, texto);
+    if (!ok) erro = 'O WhatsApp não aceitou o envio. Confira se o número tem WhatsApp.';
+  } catch (e) {
+    console.error('whatsapp-sessao: envio avulso falhou', e);
+    erro = 'O servidor do WhatsApp não respondeu. Tente de novo em instantes.';
   }
+
+  // Histórico da tela (whatsapp_mensagens_avulsas), inclusive o que falhou. Se a gravação falhar,
+  // a mensagem já saiu: só registra no log.
+  const { data: remetente } = await admin.from('membros').select('nome').eq('id', remetenteId).maybeSingle();
+  const { error: errHist } = await admin.from('whatsapp_mensagens_avulsas').insert({
+    remetente_id: remetenteId,
+    remetente_nome: remetente?.nome ?? null,
+    destino_membro_id: destinoMembroId,
+    destino_nome: destinoNome,
+    telefone,
+    texto,
+    ok,
+    erro,
+  });
+  if (errHist) console.error('whatsapp-sessao: histórico não gravado', errHist);
+
+  if (!ok) throw new ErroUsuario(erro!);
   return { ok: true, para };
 }
 

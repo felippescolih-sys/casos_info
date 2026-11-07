@@ -85,6 +85,19 @@ export type WhatsappSessaoRow = {
   ultimo_erro: string | null;
 };
 
+export type WhatsappMensagemAvulsaRow = {
+  id: string;
+  enviado_em: string;
+  remetente_id: string | null;
+  remetente_nome: string | null;
+  destino_membro_id: string | null;
+  destino_nome: string | null;
+  telefone: string;
+  texto: string;
+  ok: boolean;
+  erro: string | null;
+};
+
 export type MembroFuncaoRow = {
   membro_id: string;
   area: Area;
@@ -478,6 +491,12 @@ export type Database = {
       };
       whatsapp_sessao: {
         Row: WhatsappSessaoRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      whatsapp_mensagens_avulsas: {
+        Row: WhatsappMensagemAvulsaRow;
         Insert: never;
         Update: never;
         Relationships: [];
