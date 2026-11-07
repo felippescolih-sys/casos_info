@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
 import {
   aceitarTransferencia,
+  definirAjudante,
   encerrarCaso,
   getCasoCompleto,
   getCasoResumo,
@@ -23,6 +24,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { CasoStatusBadge } from '@/components/ui/Badge';
 import {
   Band,
@@ -531,7 +533,11 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
   const podeOperar =
     isAdminGeral || c.responsavel_id === membro?.id || c.ajudante_id === membro?.id;
 
-  const [dialog, setDialog] = useState<'transferir' | 'encerrar' | 'reabrir' | null>(null);
+  const [dialog, setDialog] = useState<
+    'transferir' | 'ajudante' | 'encerrar' | 'reabrir' | null
+  >(null);
+  // Quem escolhe o ajudante é o responsável (ou a administração), não o próprio ajudante.
+  const podeEscolherAjudante = isAdminGeral || c.responsavel_id === membro?.id;
   const [erro, setErro] = useState<string | null>(null);
 
   const pdf = useMutation({
@@ -584,6 +590,11 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
           >
             Transferir
           </Button>
+          {podeEscolherAjudante && (
+            <Button variant="secondary" size="sm" onClick={() => setDialog('ajudante')}>
+              {c.ajudante_id ? 'Trocar ajudante' : 'Adicionar ajudante'}
+            </Button>
+          )}
           <Button variant="danger" size="sm" onClick={() => setDialog('encerrar')}>
             Encerrar
           </Button>
@@ -612,6 +623,10 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
         />
       )}
 
+      {dialog === 'ajudante' && (
+        <AjudanteDialog caso={c} onClose={() => setDialog(null)} onDone={onChanged} />
+      )}
+
       <ConfirmDialog
         open={dialog === 'encerrar'}
         title="Encerrar caso"
@@ -636,6 +651,113 @@ function CaseActions({ caso: c, onChanged }: { caso: CasoRow; onChanged: () => v
         O caso volta a ficar aberto. Os dados já anonimizados <strong>não voltam</strong>.
       </ConfirmDialog>
     </div>
+  );
+}
+
+function AjudanteDialog({
+  caso: c,
+  onClose,
+  onDone,
+}: {
+  caso: CasoRow;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [busca, setBusca] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviandoPara, setEnviandoPara] = useState<string | null>(null);
+
+  const { data: todos, isLoading } = useQuery({
+    queryKey: ['membros-ativos'],
+    queryFn: listMembrosAtivos,
+  });
+  const termo = normalize(busca);
+  const encontrados = termo
+    ? (todos ?? [])
+        .filter(
+          (m) =>
+            m.id !== c.responsavel_id &&
+            m.id !== c.ajudante_id &&
+            normalize(m.nome).includes(termo),
+        )
+        .slice(0, 8)
+    : [];
+
+  const mut = useMutation({
+    mutationFn: (ajudanteId: string | null) => definirAjudante(c.id, ajudanteId),
+    onSuccess: () => {
+      onDone();
+      onClose();
+    },
+    onError: (e) => setErro((e as Error).message),
+    onSettled: () => setEnviandoPara(null),
+  });
+
+  function escolher(ajudanteId: string | null) {
+    setErro(null);
+    setEnviandoPara(ajudanteId ?? 'remover');
+    mut.mutate(ajudanteId);
+  }
+
+  return (
+    <Modal
+      open
+      title={c.ajudante_id ? 'Trocar ajudante' : 'Adicionar ajudante'}
+      onClose={onClose}
+      maxWidthClassName="max-w-md"
+    >
+      <p className="mb-4 text-sm text-gray-500">
+        O ajudante passa a ver e editar o caso, e recebe um aviso no WhatsApp.
+      </p>
+      {erro && (
+        <div className="mb-3">
+          <Alert tone="error">{erro}</Alert>
+        </div>
+      )}
+      {c.ajudante_id && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm">
+          <span>
+            Ajudante atual: <strong>{c.ajudante_nome ?? '—'}</strong>
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={enviandoPara === 'remover'}
+            disabled={mut.isPending}
+            onClick={() => escolher(null)}
+          >
+            Remover
+          </Button>
+        </div>
+      )}
+      <Input
+        autoFocus
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        placeholder="Buscar membro pelo nome…"
+      />
+      <div className="mt-2 space-y-2">
+        {isLoading && termo && (
+          <div className="flex justify-center py-4 text-gray-400">
+            <Spinner className="size-5" />
+          </div>
+        )}
+        {encontrados.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            disabled={mut.isPending}
+            onClick={() => escolher(m.id)}
+            className="flex w-full items-center justify-center rounded-md bg-slate-500 px-3 py-2.5 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-60"
+          >
+            {enviandoPara === m.id ? 'Salvando…' : m.nome}
+          </button>
+        ))}
+        {termo && !isLoading && !encontrados.length && (
+          <p className="text-center text-sm text-gray-500">Nenhum membro encontrado.</p>
+        )}
+      </div>
+    </Modal>
   );
 }
 

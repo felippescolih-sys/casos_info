@@ -542,6 +542,10 @@ export type Database = {
       cancelar_transferencia: { Args: { _caso_id: string }; Returns: undefined };
       encerrar_caso: { Args: { _caso_id: string }; Returns: undefined };
       reabrir_caso: { Args: { _caso_id: string }; Returns: undefined };
+      definir_ajudante_caso: {
+        Args: { _caso_id: string; _ajudante: string | null };
+        Returns: undefined;
+      };
       casos_por_especialidade: {
         Args: { _meses?: number };
         Returns: { area: AreaEspecialidade; total: number }[];

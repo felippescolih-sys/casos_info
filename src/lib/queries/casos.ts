@@ -137,6 +137,15 @@ export const recusarTransferencia = (casoId: string) => rpc('cancelar_transferen
 export const encerrarCaso = (casoId: string) => rpc('encerrar_caso', casoId);
 export const reabrirCaso = (casoId: string) => rpc('reabrir_caso', casoId);
 
+/** `null` tira o ajudante. Ao definir alguém, o banco manda o aviso no WhatsApp. */
+export async function definirAjudante(casoId: string, ajudanteId: string | null) {
+  const { error } = await supabase.rpc('definir_ajudante_caso', {
+    _caso_id: casoId,
+    _ajudante: ajudanteId,
+  });
+  if (error) throw error;
+}
+
 // ── anexos ───────────────────────────────────────────────────
 const BUCKET = 'casos';
 

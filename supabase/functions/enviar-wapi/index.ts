@@ -7,6 +7,7 @@
 //
 // Eventos:
 //   - "transferencia": avisa o novo responsável e o ancião de contato do caso.
+//   - "ajudante": avisa quem acabou de ser escolhido(a) como ajudante de um caso.
 //   - "checar_escalas": varredura (chamada a cada 15min pelo pg_cron) que manda
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
 //   - "escala_alterada": um plantão criado, editado ou excluído no app.
@@ -76,6 +77,43 @@ async function notificarTransferencia(casoId: string) {
         `pelo acompanhamento.`,
     );
   }
+}
+
+// Chamado por `definir_ajudante_caso` depois de gravar o ajudante. Relê o caso em vez
+// de confiar no corpo: se trocaram de novo nesse meio-tempo, avisa só quem ficou.
+async function notificarAjudante(casoId: string, autorId: string | null) {
+  const { data: caso, error } = await supabase
+    .from('casos')
+    .select('id_caso, numero, hospital_nome, responsavel_id, responsavel_nome, ajudante_id')
+    .eq('id', casoId)
+    .maybeSingle();
+  if (error || !caso?.ajudante_id) {
+    if (error) console.error('notificarAjudante: erro ao buscar caso', error);
+    return;
+  }
+
+  const ids = [caso.ajudante_id, caso.responsavel_id, autorId].filter((id): id is string => !!id);
+  const { data: membros } = await supabase.from('membros').select('id, nome, tel_zap').in('id', ids);
+  const ajudante = membros?.find((m) => m.id === caso.ajudante_id);
+  if (!ajudante) return;
+  const responsavel =
+    membros?.find((m) => m.id === caso.responsavel_id)?.nome ?? caso.responsavel_nome;
+  const autor = membros?.find((m) => m.id === autorId);
+
+  const identificador = caso.id_caso ? `caso ${caso.id_caso}` : `caso nº ${caso.numero}`;
+  let msg =
+    `Olá, ${ajudante.nome}! Agora você é ajudante` +
+    (responsavel ? ` de ${responsavel}` : '') +
+    ` no ${identificador}` +
+    (caso.hospital_nome ? ` (${caso.hospital_nome})` : '') +
+    `. Acesse o Casos Info para ver os detalhes do caso.`;
+  // A administração pode escolher o ajudante pelo responsável; aí vale dizer quem fez.
+  if (autor && autor.id !== caso.responsavel_id && autor.id !== ajudante.id) {
+    msg += `
+
+Escolha feita por ${autor.nome}.`;
+  }
+  await enviarWhatsapp(ajudante.tel_zap, msg);
 }
 
 // Carimba a escala ANTES de enviar. O update condicional (`is null`) é atômico no
@@ -346,6 +384,8 @@ Deno.serve(async (req) => {
   try {
     if (body.evento === 'transferencia' && body.casoId) {
       await notificarTransferencia(body.casoId);
+    } else if (body.evento === 'ajudante' && body.casoId) {
+      await notificarAjudante(body.casoId, body.autorId ?? null);
     } else if (body.evento === 'checar_escalas') {
       await checarEscalas();
     } else if (body.evento === 'escala_alterada' && body.acao) {
