@@ -9,7 +9,8 @@
 //   - "transferencia": avisa o novo responsável e o ancião de contato do caso.
 //   - "ajudante": avisa quem acabou de ser escolhido(a) como ajudante de um caso.
 //   - "gvp_novo_caso": avisa o responsável do grupo do GVP do hospital de um caso de paciente
-//     de fora da região de Curitiba (o gatilho `casos_aviso_gvp` decide quando).
+//     de fora da região de Curitiba (o gatilho `casos_aviso_gvp` decide quando), com cópia
+//     para o responsável e o ajudante do caso.
 //   - "checar_escalas": varredura (chamada a cada 15min pelo pg_cron) que manda
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
 //   - "escala_alterada": um plantão criado, editado ou excluído no app.
@@ -149,10 +150,7 @@ async function notificarGvpNovoCaso(casoId: string, membroId: string, grupo: num
   const ajudTexto = pessoa(ajudante?.nome ?? caso.ajudante_nome, ajudante?.tel_zap);
   const telPaciente = formatarTelefone(caso.telefone_paciente);
   const acompTexto = pessoa(caso.acompanhante_nome, caso.telefone_acompanhante);
-  const linhas = [
-    `Olá, ${membro.nome}! Novo caso no ${caso.hospital_nome}` +
-      (grupo ? `, hospital do grupo ${grupo} do GVP.` : '.'),
-    '',
+  const corpo = [
     caso.paciente_nome ? `• Paciente: ${caso.paciente_nome}` + (origem ? `, de ${origem}` : '') : null,
     !caso.paciente_nome && origem ? `• Paciente de ${origem}` : null,
     telPaciente ? `• Telefone do paciente: ${telPaciente}` : null,
@@ -160,8 +158,35 @@ async function notificarGvpNovoCaso(casoId: string, membroId: string, grupo: num
     caso.num_quarto ? `• Quarto: ${caso.num_quarto}` : null,
     respTexto ? `• Responsável da COLIH pelo caso: ${respTexto}` : null,
     ajudTexto ? `• Ajudante: ${ajudTexto}` : null,
-  ];
-  await enviarWhatsapp(membro.tel_zap, linhas.filter((l) => l !== null).join('\n'));
+  ]
+    .filter((l) => l !== null)
+    .join('\n');
+
+  await enviarWhatsapp(
+    membro.tel_zap,
+    `Olá, ${membro.nome}! Novo caso no ${caso.hospital_nome}` +
+      (grupo ? `, hospital do grupo ${grupo} do GVP.` : '.') +
+      `\n\n${corpo}`,
+  );
+
+  // Cópia para quem cuida do caso, com o contato de quem recebeu no GVP. Ninguém recebe duas vezes.
+  const gvpTexto =
+    `Quem recebeu foi o responsável` + (grupo ? ` do grupo ${grupo}` : ' do grupo') +
+    `, ${pessoa(membro.nome, membro.tel_zap)}. Cópia da mensagem:`;
+  if (responsavel && responsavel.id !== membro.id) {
+    await enviarWhatsapp(
+      responsavel.tel_zap,
+      `Olá, ${responsavel.nome}! O GVP foi avisado do seu caso no ${caso.hospital_nome}. ` +
+        `${gvpTexto}\n\n${corpo}`,
+    );
+  }
+  if (ajudante && ajudante.id !== membro.id && ajudante.id !== responsavel?.id) {
+    await enviarWhatsapp(
+      ajudante.tel_zap,
+      `Olá, ${ajudante.nome}! O GVP foi avisado do caso em que você é ajudante, no ` +
+        `${caso.hospital_nome}. ${gvpTexto}\n\n${corpo}`,
+    );
+  }
 }
 
 // (41) 99999-9999; o que não for número brasileiro com DDD sai como foi digitado.
