@@ -274,6 +274,7 @@ export type CasoRow = {
   transfundido: boolean | null;
 
   gvp: boolean | null;
+  gvp_avisado_em: string | null;
   tags: string[];
 
   aberto_em: string | null;

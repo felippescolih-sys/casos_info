@@ -5,6 +5,7 @@ export interface GvpGrupoMembro {
   id: string;
   nome: string;
   papel: GvpPapel;
+  telZap: string | null;
 }
 
 export interface GvpGrupoHospital {
@@ -22,21 +23,30 @@ export type GvpGrupo = GvpGrupoRow & {
 export async function listGvpGrupos(): Promise<GvpGrupo[]> {
   const [grupos, membros, hospitais] = await Promise.all([
     supabase.from('gvp_grupos').select('*').order('numero'),
-    supabase.from('gvp_grupo_membros').select('grupo_id, papel, membro:membros!membro_id(id, nome)'),
+    supabase.from('gvp_grupo_membros').select('grupo_id, papel, membro:membros!membro_id(id, nome, tel_zap)'),
     supabase.from('gvp_grupo_hospitais').select('grupo_id, hospital:hospitais!hospital_id(id, nome)'),
   ]);
   if (grupos.error) throw grupos.error;
   if (membros.error) throw membros.error;
   if (hospitais.error) throw hospitais.error;
 
-  type MembroJoin = { grupo_id: string; papel: GvpPapel; membro: { id: string; nome: string } | null };
+  type MembroJoin = {
+    grupo_id: string;
+    papel: GvpPapel;
+    membro: { id: string; nome: string; tel_zap: string | null } | null;
+  };
   type HospitalJoin = { grupo_id: string; hospital: { id: string; nome: string } | null };
   const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, 'pt-BR');
 
   return (grupos.data ?? []).map((g) => {
     const doGrupo = ((membros.data ?? []) as unknown as MembroJoin[])
       .filter((m) => m.grupo_id === g.id && m.membro)
-      .map((m) => ({ id: m.membro!.id, nome: m.membro!.nome, papel: m.papel }));
+      .map((m) => ({
+        id: m.membro!.id,
+        nome: m.membro!.nome,
+        papel: m.papel,
+        telZap: m.membro!.tel_zap,
+      }));
     return {
       ...g,
       responsavel: doGrupo.find((m) => m.papel === 'responsavel') ?? null,

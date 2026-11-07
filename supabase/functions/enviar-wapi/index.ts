@@ -8,6 +8,8 @@
 // Eventos:
 //   - "transferencia": avisa o novo responsável e o ancião de contato do caso.
 //   - "ajudante": avisa quem acabou de ser escolhido(a) como ajudante de um caso.
+//   - "gvp_novo_caso": avisa o responsável do grupo do GVP do hospital de um caso de paciente
+//     de fora da região de Curitiba (o gatilho `casos_aviso_gvp` decide quando).
 //   - "checar_escalas": varredura (chamada a cada 15min pelo pg_cron) que manda
 //     lembrete ~28h antes do início do plantão e aviso quando ele está começando.
 //   - "escala_alterada": um plantão criado, editado ou excluído no app.
@@ -114,6 +116,38 @@ async function notificarAjudante(casoId: string, autorId: string | null) {
 Escolha feita por ${autor.nome}.`;
   }
   await enviarWhatsapp(ajudante.tel_zap, msg);
+}
+
+// Chamado pelo gatilho `casos_aviso_gvp`, que já conferiu hospital, grupo e cidade.
+async function notificarGvpNovoCaso(casoId: string, membroId: string, grupo: number | null) {
+  const [{ data: caso, error }, { data: membro }] = await Promise.all([
+    supabase
+      .from('casos')
+      .select('id_caso, numero, paciente_nome, cidade, uf, hospital_nome, num_quarto, responsavel_nome')
+      .eq('id', casoId)
+      .maybeSingle(),
+    supabase.from('membros').select('nome, tel_zap').eq('id', membroId).maybeSingle(),
+  ]);
+  if (error || !caso || !membro) {
+    if (error) console.error('notificarGvpNovoCaso: erro ao buscar caso', error);
+    return;
+  }
+
+  const identificador = caso.id_caso ? `Caso ${caso.id_caso}` : `Caso nº ${caso.numero}`;
+  const origem = [caso.cidade?.trim(), caso.uf?.trim()].filter(Boolean).join('/');
+  const linhas = [
+    `Olá, ${membro.nome}! Novo caso no ${caso.hospital_nome}` +
+      (grupo ? `, hospital do grupo ${grupo} do GVP.` : '.'),
+    '',
+    `• ${identificador}`,
+    caso.paciente_nome ? `• Paciente: ${caso.paciente_nome}` + (origem ? `, de ${origem}` : '') : null,
+    !caso.paciente_nome && origem ? `• Paciente de ${origem}` : null,
+    caso.num_quarto ? `• Quarto: ${caso.num_quarto}` : null,
+    caso.responsavel_nome ? `• Responsável pelo caso: ${caso.responsavel_nome}` : null,
+    '',
+    'Acesse o Casos Info para ver os detalhes.',
+  ];
+  await enviarWhatsapp(membro.tel_zap, linhas.filter((l) => l !== null).join('\n'));
 }
 
 // Carimba a escala ANTES de enviar. O update condicional (`is null`) é atômico no
@@ -373,6 +407,8 @@ Deno.serve(async (req) => {
     antes?: EscalaSnapshot | null;
     depois?: EscalaSnapshot | null;
     autorId?: string | null;
+    membroId?: string;
+    grupo?: number | null;
     escalas?: EscalaSnapshot[];
   };
   try {
@@ -386,6 +422,8 @@ Deno.serve(async (req) => {
       await notificarTransferencia(body.casoId);
     } else if (body.evento === 'ajudante' && body.casoId) {
       await notificarAjudante(body.casoId, body.autorId ?? null);
+    } else if (body.evento === 'gvp_novo_caso' && body.casoId && body.membroId) {
+      await notificarGvpNovoCaso(body.casoId, body.membroId, body.grupo ?? null);
     } else if (body.evento === 'checar_escalas') {
       await checarEscalas();
     } else if (body.evento === 'escala_alterada' && body.acao) {
