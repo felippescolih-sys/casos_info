@@ -542,7 +542,14 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
         </Row>
         <Row cols={1}>
           <Cell label="Especialidade (grupo do caso)">
-            <FSelect {...t('area_especialidade')}>
+            {/* Obrigatória ao criar: sem ela o caso não entra em nenhuma área nos relatórios. Na edição
+                continua opcional, porque há casos antigos do Bubble sem especialidade. */}
+            <FSelect
+              {...register('area_especialidade', {
+                required: mode === 'novo' ? 'Escolha a especialidade do caso.' : false,
+              })}
+              required={mode === 'novo'}
+            >
               <option value="">—</option>
               {AREAS_ESPECIALIDADE.map((a) => (
                 <option key={a} value={a}>
@@ -550,6 +557,9 @@ export function CasoFormPage({ mode }: { mode: 'novo' | 'editar' }) {
                 </option>
               ))}
             </FSelect>
+            {formState.errors.area_especialidade && (
+              <p className="mt-1 text-xs text-red-600">{formState.errors.area_especialidade.message}</p>
+            )}
           </Cell>
         </Row>
 

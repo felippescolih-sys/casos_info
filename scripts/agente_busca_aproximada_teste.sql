@@ -57,6 +57,13 @@ begin
     insert into r values (10, 'membro inexistente recusado', false, 'aceitou');
   exception when others then insert into r values (10, 'membro inexistente recusado', true, sqlerrm); end;
 
+  -- 20261109160000: TMO gravado como TMO e mostrado como TMO.
+  _j := agente_criar_caso(_a, '{"nome_telefonou":"Joana","whatsapp_telefonou":"41988887777","nome_paciente":"Tmoteste Pacientinho","sexo":"F","idade":"40","congregacao":"Central","cidade_congregacao":"Curitiba","uf_congregacao":"PR","info_medica":"Transplante","morbidade":"Leucemia","especialidade":"TMO"}');
+  insert into r select 13, 'TMO gravado como tmo', c.area_especialidade = 'tmo', c.area_especialidade::text
+  from casos c where c.id_caso = _j->>'id_caso';
+  _j := agente_buscar_caso(_a, 'Tmoteste Pacientinho');
+  insert into r values (14, 'agente vê especialidade TMO', _j->0->>'especialidade' = 'TMO', _j->0->>'especialidade');
+
   insert into r select 11, 'anon e authenticated não executam',
     not has_function_privilege('anon', 'public.agente_buscar_hospital(uuid, text)', 'execute')
     and not has_function_privilege('authenticated', 'public.agente_buscar_hospital(uuid, text)', 'execute')
