@@ -32,6 +32,11 @@ begin
   _j := agente_buscar_caso(_a, 'Xyzwv Kkkqqq');
   insert into r values (4, 'nome sem parecido volta vazio', _j = '[]'::jsonb, _j::text);
 
+  -- 20261109140000: só o sobrenome em comum não é "parecido".
+  _j := agente_buscar_caso(_a, 'Carolinax Quintanilha');
+  insert into r values (12, 'só o sobrenome em comum não traz o caso',
+    not (_j @> jsonb_build_array(jsonb_build_object('id_caso', _cod))), _j::text);
+
   _j := agente_buscar_caso(_a, ' ');
   insert into r values (5, 'nome vazio pede nome', _j->>'erro' = 'nome_invalido', _j::text);
 
