@@ -26,6 +26,8 @@ import { MedicosPage } from '@/pages/medicos/MedicosPage';
 import { ChamadasPage } from '@/pages/chamadas/ChamadasPage';
 import { WhatsappPage } from '@/pages/whatsapp/WhatsappPage';
 import { GvpPage } from '@/pages/gvp/GvpPage';
+import { PalestrasPage } from '@/pages/palestras/PalestrasPage';
+import { PalestraFormPage } from '@/pages/palestras/PalestraFormPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
@@ -36,6 +38,8 @@ const isSuperadmin = (p: { isAdminGeral: boolean }) => p.isAdminGeral;
 const canManageEscalas = (p: { gerenciaEscalas: boolean }) => p.gerenciaEscalas;
 // GVP: quem é da área GVPs ou da COLIH consulta; editar é filtrado dentro da página.
 const canSeeGvp = (p: { veGvp: boolean }) => p.veGvp;
+// Palestras (HLC-33): quem tem função em Apresentações; editar é filtrado na página e pela RLS.
+const canSeePalestras = (p: { vePalestras: boolean }) => p.vePalestras;
 
 export default function App() {
   return (
@@ -109,6 +113,30 @@ export default function App() {
           element={
             <RequireAuth canAccess={canSeeColih}>
               <HospitaisPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/palestras"
+          element={
+            <RequireAuth canAccess={canSeePalestras}>
+              <PalestrasPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/palestras/nova"
+          element={
+            <RequireAuth canAccess={canSeePalestras}>
+              <PalestraFormPage mode="nova" />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/palestras/:id"
+          element={
+            <RequireAuth canAccess={canSeePalestras}>
+              <PalestraFormPage mode="editar" />
             </RequireAuth>
           }
         />

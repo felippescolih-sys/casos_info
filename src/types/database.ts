@@ -363,6 +363,42 @@ export type GvpGrupoRow = {
 
 export type GvpPapel = 'responsavel' | 'ajudante';
 
+/** Apresentação feita pela COLIH (formulário HLC-33). */
+export type PalestraRow = {
+  id: string;
+  finalidade: 'nova' | 'atualizacao';
+  presencial: boolean;
+  online: boolean;
+  powerpoint: boolean;
+  display_exposicao: boolean;
+  observacoes: string | null;
+  data_apresentacao: string;
+  qtd_participantes: number | null;
+  especialidade_participantes: string | null;
+  evento: string | null;
+  coordenador_nome: string | null;
+  coordenador_contato: string | null;
+  site: string | null;
+  local_nome: string | null;
+  endereco: string | null;
+  endereco_complemento: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  pais: string;
+  problemas: string | null;
+  experiencias: string | null;
+  nome_colih: string;
+  membro_id: string | null;
+  data_formulario: string;
+  criado_por: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PalestraInsert = Partial<PalestraRow> & Pick<PalestraRow, 'data_apresentacao'>;
+export type PalestraUpdate = Partial<Omit<PalestraRow, 'id' | 'created_at' | 'criado_por'>>;
+
 export type GvpGrupoMembroRow = {
   membro_id: string;
   grupo_id: string;
@@ -538,6 +574,12 @@ export type Database = {
         Update: Partial<Omit<GvpGrupoRow, 'id' | 'created_at'>>;
         Relationships: [];
       };
+      palestras: {
+        Row: PalestraRow;
+        Insert: PalestraInsert;
+        Update: PalestraUpdate;
+        Relationships: [];
+      };
       gvp_grupo_membros: {
         Row: GvpGrupoMembroRow;
         Insert: Omit<GvpGrupoMembroRow, 'created_at'>;
@@ -617,6 +659,8 @@ export type Database = {
         Returns: string;
       };
       gerencia_gvp: { Args: Record<string, never>; Returns: boolean };
+      gerencia_palestras: { Args: Record<string, never>; Returns: boolean };
+      ve_palestras: { Args: Record<string, never>; Returns: boolean };
       definir_ajudante_caso: {
         Args: { _caso_id: string; _ajudante: string | null };
         Returns: undefined;

@@ -34,6 +34,11 @@ export interface Permissions {
   veGvp: boolean;
   /** Cria/edita os grupos do GVP: SuperAdmin ou admin da área GVPs (o ajudante não). */
   gerenciaGvp: boolean;
+  /** Vê as palestras (HLC-33): tem função na área Apresentações, ou SuperAdmin. */
+  vePalestras: boolean;
+  /** Cadastra/edita/exclui qualquer palestra: admin ou ajudante de Apresentações, ou SuperAdmin.
+   * Quem só tem a função registra e edita as palestras em que ele é o membro da Colih. */
+  gerenciaPalestras: boolean;
   /** Admin ou ajudante daquela área específica (ex.: coordenador da lista de
    * médicos), ou SuperAdmin — que tem acesso a tudo independente de área. */
   adminDeArea: (area: Area) => boolean;
@@ -144,6 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       gerenciaEscalas: isAdminGeral || temFuncao('colih', 'admin'),
       veGvp: isAdminGeral || temFuncao('gvps') || temFuncao('colih'),
       gerenciaGvp: isAdminGeral || temFuncao('gvps', 'admin'),
+      vePalestras: isAdminGeral || temFuncao('apresentacoes'),
+      gerenciaPalestras: adminDeArea('apresentacoes'),
       adminDeArea,
     }),
     [
