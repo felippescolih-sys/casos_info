@@ -167,6 +167,7 @@ LS - Colombo PR
 LS - Fazenda Rio Grande PR
 LS - Pinhais PR
 LS - Ponta Grossa PR
+LS - São José dos Pinhais PR
 Madureira - Ponta Grossa PR
 Maria Antonieta - Pinhais PR
 Marumbi - Curitiba PR
