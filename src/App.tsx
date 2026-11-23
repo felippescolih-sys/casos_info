@@ -28,6 +28,7 @@ import { WhatsappPage } from '@/pages/whatsapp/WhatsappPage';
 import { GvpPage } from '@/pages/gvp/GvpPage';
 import { PalestrasPage } from '@/pages/palestras/PalestrasPage';
 import { PalestraFormPage } from '@/pages/palestras/PalestraFormPage';
+import { MedicamentosPage } from '@/pages/medicamentos/MedicamentosPage';
 
 const canManageMembers = (p: { gerenciaMembros: boolean }) => p.gerenciaMembros;
 // Escala, hospitais e lista de membros são consulta de trabalho pra quem é da COLIH.
@@ -113,6 +114,15 @@ export default function App() {
           element={
             <RequireAuth canAccess={canSeeColih}>
               <HospitaisPage />
+            </RequireAuth>
+          }
+        />
+        {/* Estoque de medicamentos: só a COLIH (voluntários e GVP não). Editar é filtrado na página e pela RLS. */}
+        <Route
+          path="/medicamentos"
+          element={
+            <RequireAuth canAccess={canSeeColih}>
+              <MedicamentosPage />
             </RequireAuth>
           }
         />

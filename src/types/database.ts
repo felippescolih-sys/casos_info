@@ -399,6 +399,39 @@ export type PalestraRow = {
 export type PalestraInsert = Partial<PalestraRow> & Pick<PalestraRow, 'data_apresentacao'>;
 export type PalestraUpdate = Partial<Omit<PalestraRow, 'id' | 'created_at' | 'criado_por'>>;
 
+export type MedicamentoOrigem = 'compra' | 'doacao';
+
+/** Medicamento em estoque com um membro da COLIH (com histórico de baixas). */
+export type MedicamentoEstoqueRow = {
+  id: string;
+  medicamento: string;
+  dosagem: string;
+  quantidade: number;
+  unidade: string | null;
+  validade: string | null;
+  origem: MedicamentoOrigem;
+  /** Valor pago em R$ (numeric volta como número ou texto); nulo quando é doação. */
+  valor: number | string | null;
+  responsavel_id: string;
+  observacoes: string | null;
+  baixado_em: string | null;
+  baixado_por: string | null;
+  baixa_destino: string | null;
+  /** Número do caso (não o id): a baixa pode ser para um caso que a pessoa não enxerga. */
+  baixa_caso_numero: number | null;
+  /** Nome do paciente do caso na hora da baixa (o banco preenche). */
+  baixa_paciente: string | null;
+  criado_por: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MedicamentoEstoqueInsert = Partial<MedicamentoEstoqueRow> &
+  Pick<MedicamentoEstoqueRow, 'medicamento' | 'dosagem' | 'origem'>;
+export type MedicamentoEstoqueUpdate = Partial<
+  Omit<MedicamentoEstoqueRow, 'id' | 'created_at' | 'criado_por' | 'baixado_por' | 'baixa_paciente'>
+>;
+
 export type GvpGrupoMembroRow = {
   membro_id: string;
   grupo_id: string;
@@ -580,6 +613,12 @@ export type Database = {
         Update: PalestraUpdate;
         Relationships: [];
       };
+      medicamentos_estoque: {
+        Row: MedicamentoEstoqueRow;
+        Insert: MedicamentoEstoqueInsert;
+        Update: MedicamentoEstoqueUpdate;
+        Relationships: [];
+      };
       gvp_grupo_membros: {
         Row: GvpGrupoMembroRow;
         Insert: Omit<GvpGrupoMembroRow, 'created_at'>;
@@ -695,6 +734,20 @@ export type Database = {
       membros_por_area: {
         Args: { _area: Area };
         Returns: { id: string; nome: string }[];
+      };
+      membros_colih: {
+        Args: Record<string, never>;
+        Returns: { id: string; nome: string }[];
+      };
+      medicamentos_buscar_caso: {
+        Args: { _termo: string };
+        Returns: {
+          numero: number;
+          paciente_nome: string | null;
+          hospital_nome: string | null;
+          aberto_em: string | null;
+          aberto: boolean;
+        }[];
       };
       promover_medico_geral: { Args: { _id: string }; Returns: string };
       chamadas_contagem: {

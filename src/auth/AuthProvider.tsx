@@ -39,6 +39,9 @@ export interface Permissions {
   /** Cadastra/edita/exclui qualquer palestra: admin ou ajudante de Apresentações, ou SuperAdmin.
    * Quem só tem a função registra e edita as palestras em que ele é o membro da Colih. */
   gerenciaPalestras: boolean;
+  /** Edita/baixa/exclui qualquer medicamento do estoque: SuperAdmin ou admin da COLIH. O membro da
+   * COLIH mexe nos que ele lançou ou que estão com ele. */
+  gerenciaMedicamentos: boolean;
   /** Admin ou ajudante daquela área específica (ex.: coordenador da lista de
    * médicos), ou SuperAdmin — que tem acesso a tudo independente de área. */
   adminDeArea: (area: Area) => boolean;
@@ -151,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       gerenciaGvp: isAdminGeral || temFuncao('gvps', 'admin'),
       vePalestras: isAdminGeral || temFuncao('apresentacoes'),
       gerenciaPalestras: adminDeArea('apresentacoes'),
+      gerenciaMedicamentos: isAdminGeral || temFuncao('colih', 'admin'),
       adminDeArea,
     }),
     [

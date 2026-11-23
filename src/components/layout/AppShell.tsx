@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { to: '/membros', label: 'Membros', colih: true },
   { to: '/membros/aprovacoes', label: 'Aprovações', gestor: true },
   { to: '/hospitais', label: 'Hospitais', colih: true },
+  { to: '/medicamentos', label: 'Medicamentos', colih: true },
   { to: '/gvp', label: 'GVP', gvp: true },
   { to: '/palestras', label: 'Palestras', palestras: true },
   { to: '/whatsapp', label: 'WhatsApp', adminGeral: true },
