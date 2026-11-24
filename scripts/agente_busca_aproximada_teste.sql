@@ -16,6 +16,8 @@ begin
   insert into membros (id, nome, email, status, tel_zap) values
     (_a, 'Ana Teste', 'teste-busca-a@exemplo.invalid', 'ativo', '41900000091')
   on conflict (id) do update set status = 'ativo';
+  -- Só membro da COLIH abre caso (20261124120000).
+  insert into membro_funcoes (membro_id, area, nivel) values (_a, 'colih', 'usuario') on conflict do nothing;
 
   _j := agente_criar_caso(_a, '{"nome_telefonou":"Joana","whatsapp_telefonou":"41988887777","nome_paciente":"Zebedeu Quintanilha Pacienteteste","sexo":"M","idade":"70","congregacao":"Central","cidade_congregacao":"Curitiba","uf_congregacao":"PR","info_medica":"Cirurgia","morbidade":"Hérnia","especialidade":"AD-Hepato-Uro"}');
   _cod := _j->>'id_caso';

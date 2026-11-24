@@ -22,7 +22,7 @@ import { InstalarApp } from '@/components/InstalarApp';
 import { formatDuracaoMin, formatTelefone, getUltimaChamada } from '@/lib/queries/chamadas';
 
 export function DashboardPage() {
-  const { membro } = useAuth();
+  const { membro, ehMembroColih } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -40,12 +40,14 @@ export function DashboardPage() {
       <UltimaChamadaBanner />
 
       <div className="flex flex-wrap gap-2">
-        <Link
-          to="/casos/novo"
-          className="inline-flex h-9 items-center rounded-md bg-brand-700 px-4 text-sm font-medium text-white hover:bg-brand-800"
-        >
-          + Novo caso
-        </Link>
+        {ehMembroColih && (
+          <Link
+            to="/casos/novo"
+            className="inline-flex h-9 items-center rounded-md bg-brand-700 px-4 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            + Novo caso
+          </Link>
+        )}
         <Link
           to="/casos"
           className="inline-flex h-9 items-center rounded-md bg-white px-4 text-sm font-medium text-gray-800 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"

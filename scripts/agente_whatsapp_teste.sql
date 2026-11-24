@@ -19,6 +19,9 @@ begin
     (_a, 'Ana Teste', 'teste-agente-a@exemplo.invalid', 'ativo', '(41) 9000-0001'),
     (_b, 'Beto Teste', 'teste-agente-b@exemplo.invalid', 'ativo', '41900000002')
   on conflict (id) do update set status = 'ativo', nome = excluded.nome, tel_zap = excluded.tel_zap;
+  -- Só membro da COLIH abre caso (20261124120000).
+  insert into membro_funcoes (membro_id, area, nivel) values (_a, 'colih', 'usuario'), (_b, 'colih', 'usuario')
+  on conflict do nothing;
 
   _j := agente_membro_por_telefone('5541990000001');
   insert into r values (1, 'telefone 8 dígitos acha membro', (_j->>'id')::uuid = _a, _j::text);

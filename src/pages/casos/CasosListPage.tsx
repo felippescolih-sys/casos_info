@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { AjudanteBadge, CasoStatusBadge } from '@/components/ui/Badge';
 
 export function CasosListPage() {
-  const { membro } = useAuth();
+  const { membro, ehMembroColih } = useAuth();
   // Abre em "meus casos": o uso normal é acompanhar o que é seu, e a lista inteira
   // tem milhares de registros. Quem quiser ver tudo troca no filtro.
   const [filter, setFilter] = useState<CasosFilter>({
@@ -46,12 +46,14 @@ export function CasosListPage() {
             </span>
           )}
         </div>
-        <Link
-          to="/casos/novo"
-          className="inline-flex h-9 items-center rounded-md bg-brand-700 px-4 text-sm font-medium text-white hover:bg-brand-800"
-        >
-          Novo caso
-        </Link>
+        {ehMembroColih && (
+          <Link
+            to="/casos/novo"
+            className="inline-flex h-9 items-center rounded-md bg-brand-700 px-4 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            Novo caso
+          </Link>
+        )}
       </div>
 
       <label className="flex items-center gap-2 text-sm text-gray-700">

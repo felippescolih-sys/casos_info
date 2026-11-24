@@ -66,7 +66,15 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/conta" element={<MyAccountPage />} />
         <Route path="/casos" element={<CasosListPage />} />
-        <Route path="/casos/novo" element={<CasoFormPage mode="novo" />} />
+        {/* Abrir caso é só da COLIH (a RLS também confere). */}
+        <Route
+          path="/casos/novo"
+          element={
+            <RequireAuth canAccess={canSeeColih}>
+              <CasoFormPage mode="novo" />
+            </RequireAuth>
+          }
+        />
         <Route path="/casos/:id" element={<CasoDetailPage />} />
         <Route path="/casos/:id/editar" element={<CasoFormPage mode="editar" />} />
         <Route
